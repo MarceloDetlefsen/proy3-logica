@@ -1,0 +1,9 @@
+{
+  "name": "invalido-relacion-vacia",
+  "description": "La relación declarada no tiene tuplas.",
+  "language": {"funcs": {}, "preds": {"P": 1}},
+  "input": "P(x)",
+  "interpretation": {"domain": ["0"], "funcs": {}, "rels": {"P": []}},
+  "env": {"x": "0"},
+  "expect": {"errorCodes": ["REL_EMPTY"]}
+}

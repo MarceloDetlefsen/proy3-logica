@@ -1,0 +1,13 @@
+{
+  "name": "universal-verdadero",
+  "description": "Todos los elementos del dominio satisfacen P.",
+  "language": {"funcs": {}, "preds": {"P": 1}},
+  "input": "∀x P(x)",
+  "interpretation": {
+    "domain": ["a", "b"],
+    "funcs": {},
+    "rels": {"P": [["a"], ["b"]]}
+  },
+  "env": {},
+  "expect": {"errorCodes": [], "value": true}
+}

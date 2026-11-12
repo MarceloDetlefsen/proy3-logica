@@ -1,0 +1,9 @@
+{
+  "name": "invalido-simbolo-formula",
+  "description": "La fórmula usa un predicado no declarado.",
+  "language": {"funcs": {}, "preds": {"P": 1}},
+  "input": "Q(x)",
+  "interpretation": {"domain": ["0"], "funcs": {}, "rels": {"P": [["0"]]}},
+  "env": {"x": "0"},
+  "expect": {"errorCodes": ["UNDECLARED_SYMBOL"]}
+}

@@ -1,0 +1,9 @@
+{
+  "name": "invalido-funcion-vacia",
+  "description": "La función declarada no tiene entradas.",
+  "language": {"funcs": {"f": 1}, "preds": {"P": 1}},
+  "input": "P(f(x))",
+  "interpretation": {"domain": ["0", "1"], "funcs": {"f": []}, "rels": {"P": [["0"], ["1"]]}},
+  "env": {"x": "0"},
+  "expect": {"errorCodes": ["FUNC_EMPTY"]}
+}

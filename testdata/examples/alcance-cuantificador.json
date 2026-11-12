@@ -1,0 +1,13 @@
+{
+  "name": "alcance-cuantificador",
+  "description": "El cuantificador solo alcanza a P(x), no a toda la implicación.",
+  "language": {"funcs": {}, "preds": {"P": 1, "Q": 1}},
+  "input": "∀x P(x) → Q(x)",
+  "interpretation": {
+    "domain": ["1", "2"],
+    "funcs": {},
+    "rels": {"P": [["1"]], "Q": [["2"]]}
+  },
+  "env": {"x": "1"},
+  "expect": {"errorCodes": [], "value": true}
+}

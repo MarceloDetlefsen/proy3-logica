@@ -1,0 +1,13 @@
+{
+  "name": "min-existe",
+  "description": "Existe un elemento que es menor que ningún otro elemento.",
+  "language": {"funcs": {}, "preds": {"Less": 2}},
+  "input": "∃x ∀y ¬Less(y,x)",
+  "interpretation": {
+    "domain": ["1", "2", "3"],
+    "funcs": {},
+    "rels": {"Less": [["1", "2"], ["1", "3"], ["2", "3"]]}
+  },
+  "env": {},
+  "expect": {"errorCodes": [], "value": true, "witness": {"variable": "x", "value": "1"}}
+}

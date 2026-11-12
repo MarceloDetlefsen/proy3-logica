@@ -1,0 +1,9 @@
+{
+  "name": "invalido-elemento-fuera-dominio",
+  "description": "Una tupla contiene un elemento ausente del dominio.",
+  "language": {"funcs": {}, "preds": {"P": 1}},
+  "input": "P(x)",
+  "interpretation": {"domain": ["0"], "funcs": {}, "rels": {"P": [["1"]]}},
+  "env": {"x": "0"},
+  "expect": {"errorCodes": ["REL_NOT_IN_DOMAIN"]}
+}

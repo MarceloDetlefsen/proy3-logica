@@ -1,0 +1,13 @@
+{
+  "name": "densidad-verdadera",
+  "description": "Hay un elemento intermedio entre 1 y 3.",
+  "language": {"funcs": {}, "preds": {"Less": 2}},
+  "input": "Less(x,y) → ∃z (Less(x,z) ∧ Less(z,y))",
+  "interpretation": {
+    "domain": ["1", "2", "3"],
+    "funcs": {},
+    "rels": {"Less": [["1", "2"], ["1", "3"], ["2", "3"]]}
+  },
+  "env": {"x": "1", "y": "3"},
+  "expect": {"errorCodes": [], "value": true, "witness": {"variable": "z", "value": "2"}}
+}

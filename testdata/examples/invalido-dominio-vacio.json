@@ -1,0 +1,9 @@
+{
+  "name": "invalido-dominio-vacio",
+  "description": "El dominio no puede estar vacío.",
+  "language": {"funcs": {}, "preds": {"P": 1}},
+  "input": "P(x)",
+  "interpretation": {"domain": [], "funcs": {}, "rels": {"P": []}},
+  "env": {"x": "1"},
+  "expect": {"errorCodes": ["DOMAIN_EMPTY"]}
+}

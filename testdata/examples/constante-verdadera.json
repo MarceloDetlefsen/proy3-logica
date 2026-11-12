@@ -1,0 +1,13 @@
+{
+  "name": "constante-verdadera",
+  "description": "La negación de P(c) es verdadera.",
+  "language": {"funcs": {"c": 0}, "preds": {"P": 1}},
+  "input": "¬P(c)",
+  "interpretation": {
+    "domain": ["0", "1"],
+    "funcs": {"c": [{"args": [], "value": "0"}]},
+    "rels": {"P": [["1"]]}
+  },
+  "env": {},
+  "expect": {"errorCodes": [], "value": true}
+}

@@ -8,6 +8,11 @@ export type Formula =
   | { k: 'bin'; op: 'and' | 'or' | 'imp' | 'iff'; l: Formula; r: Formula }
   | { k: 'quant'; q: 'forall' | 'exists'; v: string; f: Formula };
 
+export type Language = {
+  funcs: Record<string, number>;
+  preds: Record<string, number>;
+};
+
 export type Interp = {
   domain: string[];
   funcs: Record<string, Record<string, string>>;

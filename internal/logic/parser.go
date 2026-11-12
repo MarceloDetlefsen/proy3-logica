@@ -120,6 +120,12 @@ func (p *formulaParser) parseUnary() (Formula, *LogicError) {
 		if quantifier.Type == EXISTS {
 			kind = Exists
 		}
+		if _, isFunction := p.lang.Funcs[variable.Text]; isFunction {
+			p.addError(WRONG_SYMBOL_KIND, fmt.Sprintf("La variable %q no puede ser un símbolo declarado como función.", variable.Text), variable)
+		}
+		if _, isPredicate := p.lang.Preds[variable.Text]; isPredicate {
+			p.addError(WRONG_SYMBOL_KIND, fmt.Sprintf("La variable %q no puede ser un símbolo declarado como predicado.", variable.Text), variable)
+		}
 		return Quant{Q: kind, V: variable.Text, F: formula}, nil
 	default:
 		return p.parseAtom()
@@ -146,6 +152,7 @@ func (p *formulaParser) parseAtom() (Formula, *LogicError) {
 	if syntaxErr != nil {
 		return nil, syntaxErr
 	}
+	p.resolvePredicate(name, args)
 	return Pred{Name: name.Text, Args: args}, nil
 }
 
@@ -183,9 +190,50 @@ func (p *formulaParser) parseTerm() (Term, *LogicError) {
 		return nil, syntaxErr
 	}
 	if args == nil {
+		if arity, isFunction := p.lang.Funcs[name.Text]; isFunction {
+			if arity == 0 {
+				return App{Fn: name.Text, Args: []Term{}}, nil
+			}
+			p.addError(ARITY_MISMATCH, fmt.Sprintf("La función %q requiere aridad %d, pero se encontraron 0 argumentos.", name.Text, arity), name)
+			return App{Fn: name.Text, Args: []Term{}}, nil
+		}
+		if _, isPredicate := p.lang.Preds[name.Text]; isPredicate {
+			p.addError(WRONG_SYMBOL_KIND, fmt.Sprintf("El símbolo %q es un predicado, no una función.", name.Text), name)
+			return Var{Name: name.Text}, nil
+		}
 		return Var{Name: name.Text}, nil
 	}
+	if arity, isFunction := p.lang.Funcs[name.Text]; isFunction {
+		if arity != len(args) {
+			p.addError(ARITY_MISMATCH, fmt.Sprintf("La función %q requiere aridad %d, pero se encontraron %d argumentos.", name.Text, arity, len(args)), name)
+		}
+		return App{Fn: name.Text, Args: args}, nil
+	}
+	if _, isPredicate := p.lang.Preds[name.Text]; isPredicate {
+		p.addError(WRONG_SYMBOL_KIND, fmt.Sprintf("El símbolo %q es un predicado, no una función.", name.Text), name)
+		return App{Fn: name.Text, Args: args}, nil
+	}
+	p.addError(UNDECLARED_SYMBOL, fmt.Sprintf("El símbolo %q no está declarado.", name.Text), name)
 	return App{Fn: name.Text, Args: args}, nil
+}
+
+func (p *formulaParser) resolvePredicate(name Token, args []Term) {
+	if arity, isPredicate := p.lang.Preds[name.Text]; isPredicate {
+		found := len(args)
+		if arity != found {
+			p.addError(ARITY_MISMATCH, fmt.Sprintf("El predicado %q requiere aridad %d, pero se encontraron %d argumentos.", name.Text, arity, found), name)
+		}
+		return
+	}
+	if _, isFunction := p.lang.Funcs[name.Text]; isFunction {
+		p.addError(WRONG_SYMBOL_KIND, fmt.Sprintf("El símbolo %q es una función, no un predicado.", name.Text), name)
+		return
+	}
+	p.addError(UNDECLARED_SYMBOL, fmt.Sprintf("El predicado %q no está declarado.", name.Text), name)
+}
+
+func (p *formulaParser) addError(code, message string, token Token) {
+	p.errors = append(p.errors, LogicError{Code: code, Message: message, Start: token.Start, End: token.End})
 }
 
 func (p *formulaParser) expect(kind TokenType) (Token, *LogicError) {

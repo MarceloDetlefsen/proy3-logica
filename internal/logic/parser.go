@@ -17,7 +17,7 @@ func ParseFormula(input string, lang Language) (Formula, []LogicError) {
 		return nil, []LogicError{*err}
 	}
 	if parser.current().Type != EOF {
-		return nil, []LogicError{*parser.expected("EOF", parser.current())}
+		return nil, []LogicError{*parser.expected(tokenName(EOF), parser.current())}
 	}
 	if len(parser.errors) > 0 {
 		return nil, parser.errors
@@ -264,8 +264,26 @@ func (p *formulaParser) advance() {
 
 func tokenName(kind TokenType) string {
 	switch kind {
+	case LPAREN:
+		return "("
 	case RPAREN:
 		return ")"
+	case COMMA:
+		return ","
+	case NOT:
+		return "¬"
+	case AND:
+		return "∧"
+	case OR:
+		return "∨"
+	case IMP:
+		return "→"
+	case IFF:
+		return "↔"
+	case FORALL:
+		return "∀"
+	case EXISTS:
+		return "∃"
 	case IDENT:
 		return "identificador"
 	case EOF:

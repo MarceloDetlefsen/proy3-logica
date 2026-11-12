@@ -19,6 +19,11 @@ type validateLanguageResponse struct {
 	Errors   []logic.LogicError `json:"errors"`
 }
 
+type analyzeRequest struct {
+	Input    string         `json:"input"`
+	Language logic.Language `json:"language"`
+}
+
 func validateLanguageHandler(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPost {
 		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")
@@ -42,6 +47,21 @@ func validateLanguageHandler(writer http.ResponseWriter, request *http.Request) 
 		errors = []logic.LogicError{}
 	}
 	writeJSON(writer, http.StatusOK, validateLanguageResponse{Language: language, Errors: errors})
+}
+
+func analyzeHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")
+		return
+	}
+
+	var body analyzeRequest
+	if err := decodeJSON(request, &body); err != nil {
+		writeAPIError(writer, http.StatusBadRequest, "El cuerpo JSON no es válido.")
+		return
+	}
+
+	writeJSON(writer, http.StatusOK, logic.AnalyzeFormula(body.Input, body.Language))
 }
 
 func decodeJSON(request *http.Request, destination any) error {

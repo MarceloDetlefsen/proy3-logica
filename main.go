@@ -20,5 +20,6 @@ func newServer() http.Handler {
 	server := http.NewServeMux()
 	server.Handle("/", http.FileServer(http.FS(webFiles)))
 	server.HandleFunc("/api/language/validate", validateLanguageHandler)
+	server.HandleFunc("/api/analyze", analyzeHandler)
 	return server
 }

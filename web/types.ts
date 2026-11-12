@@ -28,12 +28,26 @@ export type ValidateLanguageResponse = {
   errors: LogicError[];
 };
 
+export type AnalyzeRequest = {
+  input: string;
+  language: Language;
+};
+
+export type AnalyzeResponse = {
+  formula?: Formula;
+  freeVars: string[];
+  warnings: Warning[];
+  errors: LogicError[];
+};
+
 export type LogicError = {
   code: string;
   message: string;
   start: number;
   end: number;
 };
+
+export type Warning = LogicError;
 
 export type Interp = {
   domain: string[];

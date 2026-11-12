@@ -10,8 +10,15 @@ import (
 var webFiles embed.FS
 
 func main() {
-	server := http.FileServer(http.FS(webFiles))
+	server := newServer()
 
 	log.Println("proy3-logica escuchando en http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", server))
+}
+
+func newServer() http.Handler {
+	server := http.NewServeMux()
+	server.Handle("/", http.FileServer(http.FS(webFiles)))
+	server.HandleFunc("/api/language/validate", validateLanguageHandler)
+	return server
 }

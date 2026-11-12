@@ -6,8 +6,8 @@ type Language struct {
 }
 
 type SymbolDecl struct {
-	Name  string
-	Arity int
+	Name  string `json:"name"`
+	Arity int    `json:"arity"`
 }
 
 func ValidateLanguage(funcs, preds []SymbolDecl) (Language, []LogicError) {

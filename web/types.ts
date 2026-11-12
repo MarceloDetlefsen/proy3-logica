@@ -13,6 +13,28 @@ export type Language = {
   preds: Record<string, number>;
 };
 
+export type SymbolDecl = {
+  name: string;
+  arity: number;
+};
+
+export type ValidateLanguageRequest = {
+  funcs: SymbolDecl[];
+  preds: SymbolDecl[];
+};
+
+export type ValidateLanguageResponse = {
+  language: Language;
+  errors: LogicError[];
+};
+
+export type LogicError = {
+  code: string;
+  message: string;
+  start: number;
+  end: number;
+};
+
 export type Interp = {
   domain: string[];
   funcs: Record<string, Record<string, string>>;

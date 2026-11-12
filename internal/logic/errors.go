@@ -5,6 +5,7 @@ type LogicError struct {
 	Message string `json:"message"`
 	Start   int    `json:"start"`
 	End     int    `json:"end"`
+	Path    string `json:"path,omitempty"`
 }
 
 const (

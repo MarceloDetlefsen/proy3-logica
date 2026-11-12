@@ -45,22 +45,74 @@ export type LogicError = {
   message: string;
   start: number;
   end: number;
+  path?: string;
 };
 
-export type Warning = LogicError;
+export type WarningKind = 'duplicate_tuple' | 'extra_env';
 
-export type Interp = {
+export type Warning = {
+  kind: WarningKind;
+  message: string;
+  path?: string;
+};
+
+export type FuncEntry = {
+  args: string[];
+  value: string;
+};
+
+export type Interpretation = {
   domain: string[];
-  funcs: Record<string, Record<string, string>>;
+  funcs: Record<string, FuncEntry[]>;
   rels: Record<string, string[][]>;
 };
+
+export type Interp = Interpretation;
 
 export type Env = Record<string, string>;
 
 export type Explanation = {
   holds: boolean;
-  rule: string;
-  witness?: Env;
-  counter?: Env;
+  rule: 'pred' | 'not' | 'and' | 'or' | 'imp' | 'iff' | 'forall' | 'exists';
+  formula: string;
+  summary: string;
+  env: Record<string, string>;
+  terms?: { term: string; value: string }[];
+  witness?: { variable: string; value: string };
+  counterexample?: { variable: string; value: string };
+  checked?: number;
+  domainSize?: number;
+  decisive?: number[];
+  truncated?: boolean;
   children: Explanation[];
+};
+
+export type InterpretationValidateRequest = {
+  language: Language;
+  interpretation: Interpretation;
+};
+
+export type InterpretationValidateResponse = {
+  errors: LogicError[];
+  warnings: Warning[];
+};
+
+export type EvaluateRequest = {
+  language: Language;
+  input: string;
+  interpretation: Interpretation;
+  env: Env;
+};
+
+export type EvaluateResult = {
+  value: boolean;
+  formula: string;
+  freeVars: string[];
+  explanation: Explanation;
+};
+
+export type EvaluateResponse = {
+  errors: LogicError[];
+  warnings: Warning[];
+  result?: EvaluateResult;
 };

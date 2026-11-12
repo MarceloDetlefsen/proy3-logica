@@ -1,10 +1,9 @@
 package logic
 
 type Warning struct {
-	Code    string `json:"code"`
+	Kind    string `json:"kind"`
 	Message string `json:"message"`
-	Start   int    `json:"start"`
-	End     int    `json:"end"`
+	Path    string `json:"path,omitempty"`
 }
 
 type Analysis struct {

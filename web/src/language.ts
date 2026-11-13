@@ -95,11 +95,13 @@ export function createLanguageUI(actions) {
   }
 
   const validate = debounce(async () => {
+    const hasNamedSymbol = [...state.funcs, ...state.preds].some((symbol) =>
+      symbol.name.trim(),
+    );
     if (
       !hasInteracted &&
       !state.example &&
-      state.funcs.length === 0 &&
-      state.preds.length === 0
+      !hasNamedSymbol
     ) {
       state.langValid = false;
       const host = $("#language-status");
@@ -185,20 +187,30 @@ export function createLanguageUI(actions) {
   }
 
   $("#add-func").addEventListener("click", () => {
+    const emptyIndex = state.funcs.findIndex((symbol) => !symbol.name.trim());
+    if (emptyIndex >= 0) {
+      $(".symbol-name", funcsHost.children[emptyIndex]).focus();
+      return;
+    }
     hasInteracted = true;
     state.funcs.push({ name: "", arity: 1 });
     renderSymbols("func");
     validate();
   });
   $("#add-pred").addEventListener("click", () => {
+    const emptyIndex = state.preds.findIndex((symbol) => !symbol.name.trim());
+    if (emptyIndex >= 0) {
+      $(".symbol-name", predsHost.children[emptyIndex]).focus();
+      return;
+    }
     hasInteracted = true;
     state.preds.push({ name: "", arity: 1 });
     renderSymbols("pred");
     validate();
   });
 
-  state.funcs = [];
-  state.preds = [];
+  state.funcs = [{ name: "", arity: 1 }];
+  state.preds = [{ name: "", arity: 1 }];
   renderAll();
 
   return {

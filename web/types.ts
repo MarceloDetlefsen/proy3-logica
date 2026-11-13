@@ -8,6 +8,47 @@ export type Formula =
   | { k: 'bin'; op: 'and' | 'or' | 'imp' | 'iff'; l: Formula; r: Formula }
   | { k: 'quant'; q: 'forall' | 'exists'; v: string; f: Formula };
 
+export type Language = {
+  funcs: Record<string, number>;
+  preds: Record<string, number>;
+};
+
+export type SymbolDecl = {
+  name: string;
+  arity: number;
+};
+
+export type ValidateLanguageRequest = {
+  funcs: SymbolDecl[];
+  preds: SymbolDecl[];
+};
+
+export type ValidateLanguageResponse = {
+  language: Language;
+  errors: LogicError[];
+};
+
+export type AnalyzeRequest = {
+  input: string;
+  language: Language;
+};
+
+export type AnalyzeResponse = {
+  formula?: Formula;
+  freeVars: string[];
+  warnings: Warning[];
+  errors: LogicError[];
+};
+
+export type LogicError = {
+  code: string;
+  message: string;
+  start: number;
+  end: number;
+};
+
+export type Warning = LogicError;
+
 export type Interp = {
   domain: string[];
   funcs: Record<string, Record<string, string>>;

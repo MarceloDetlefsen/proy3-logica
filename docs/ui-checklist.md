@@ -55,6 +55,9 @@ modo mock.
 34. Revisa los temas claro y oscuro a 360 px y en escritorio; confirma que no hay desbordamiento horizontal.
 35. Prueba un cuantificador vacuo y otro anidado con la misma variable; confirma que aparecen sus avisos.
 36. Introduce nombre inválido, aridad inválida y duplicados; confirma que cada mensaje y campo marcado queda junto a su fila.
+37. Declara una función binaria sobre un dominio de dos elementos y confirma cuatro tuplas; agrega un elemento, verifica nueve y confirma que se conservan las salidas previas.
+38. Inserta `↔` en medio de una fórmula y confirma que queda en la posición del cursor.
+39. Declara una función cuya tabla supere 10 000 filas; confirma que la UI informa el límite sin intentar renderizarla.
 
 ## Contrato de la API
 

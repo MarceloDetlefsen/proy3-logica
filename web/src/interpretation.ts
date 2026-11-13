@@ -101,20 +101,38 @@ export function createInterpretationUI(actions) {
     const section = document.createElement("section");
     section.dataset.symbol = name;
     section.dataset.symbolType = "func";
-    section.innerHTML = `<div class="row-head"><h3>Tabla de ${escapeHTML(name)} <span class="muted">(función, aridad ${arity}${arity === 0 ? ", constante" : ""})</span></h3>
-      <button class="button small add-row">＋ Fila</button></div>`;
+    section.innerHTML = `<div class="row-head"><h3>Tabla de ${escapeHTML(name)} <span class="muted">(función, aridad ${arity}${arity === 0 ? ", constante" : ""})</span></h3></div>`;
+    const tuples = functionTuples(arity);
+    if (tuples === null) {
+      state.funcRows[name] = [];
+      const warning = document.createElement("p");
+      warning.className = "error-list";
+      warning.textContent = "La tabla requeriría más de 10 000 filas, el máximo admitido.";
+      section.append(warning);
+      tables.append(section);
+      return;
+    }
     const table = document.createElement("table");
     table.className = "table";
     const headers = Array.from(
       { length: arity },
       (_, index) => `<th>Argumento ${index + 1}</th>`,
     ).join("");
-    table.innerHTML = `<thead><tr>${headers}<th>Resultado</th><th></th></tr></thead><tbody></tbody>`;
+    table.innerHTML = `<thead><tr>${headers}<th>Resultado</th></tr></thead><tbody></tbody>`;
     appendTable(section, table);
 
-    const rows = (state.funcRows[name] = existingRows || [
-      Array(arity + 1).fill(""),
-    ]);
+    const previousValues = new Map(
+      (existingRows || [])
+        .filter((values) => values.length === arity + 1)
+        .map((values) => [
+          JSON.stringify(values.slice(0, arity)),
+          values[arity] || "",
+        ]),
+    );
+    const rows = (state.funcRows[name] = tuples.map((args) => [
+      ...args,
+      previousValues.get(JSON.stringify(args)) || "",
+    ]));
     const body = $("tbody", table);
     const renderRows = () => {
       body.replaceChildren();
@@ -122,25 +140,32 @@ export function createInterpretationUI(actions) {
         const row = document.createElement("tr");
         row.dataset.path = `funcs.${name}[${rowIndex}]`;
         const argumentCells = Array.from({ length: arity }, (_, column) =>
-          selectCell(name, `argumento ${column + 1}`, values, column),
+          `<td><span class="tuple-value">${escapeHTML(values[column])}</span></td>`,
         ).join("");
-        row.innerHTML = `${argumentCells}${selectCell(name, "resultado", values, arity)}
-          <td><button class="button danger small remove-row" aria-label="Eliminar fila">×</button></td>`;
+        row.innerHTML = `${argumentCells}${selectCell(name, "resultado", values, arity)}`;
         bindSelects(row, values);
-        $(".remove-row", row).addEventListener("click", () => {
-          rows.splice(rowIndex, 1);
-          renderRows();
-          validate();
-        });
         body.append(row);
       });
     };
 
     renderRows();
-    $(".add-row", section).addEventListener("click", () => {
-      rows.push(Array(arity + 1).fill(""));
-      renderRows();
-    });
+  }
+
+  function functionTuples(arity) {
+    if (arity === 0) return [[]];
+    if (arity < 0 || state.domain.length === 0) return [];
+    let count = 1;
+    for (let position = 0; position < arity; position++) {
+      count *= state.domain.length;
+      if (count > 10_000) return null;
+    }
+    let tuples = [[]];
+    for (let position = 0; position < arity; position++) {
+      tuples = tuples.flatMap((prefix) =>
+        state.domain.map((value) => [...prefix, value]),
+      );
+    }
+    return tuples;
   }
 
   function renderRelationTable(name, arity, existingRows) {

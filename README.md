@@ -78,3 +78,13 @@ error incluye `path` para ubicar el dato inválido. El dominio admite hasta 100
 elementos y cada tabla de función o relación hasta 10 000 entradas. La
 completitud de una función se comprueba contra todas las tuplas de `D^n`; si
 faltan tuplas, el error informa cuántas faltan y muestra hasta cinco ejemplos.
+
+### `POST /api/evaluate`
+
+Evalúa una fórmula en una interpretación finita. Recibe `language`, `input`,
+`interpretation` y `env` como se describe en `docs/contrato-evaluador.md`.
+Primero valida el lenguaje, la fórmula, la interpretación y las asignaciones
+de todas las variables libres. Si hay errores, no devuelve `result`. La
+evaluación aplica semántica de Tarski y devuelve el valor y un árbol de
+explicación. Cada petición tiene un presupuesto de 100 000 pasos; si se agota,
+responde con `EVAL_LIMIT` en `errors`.

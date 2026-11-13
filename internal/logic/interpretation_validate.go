@@ -145,13 +145,10 @@ func validDomainElement(value string) bool {
 	if value == "" {
 		return false
 	}
-	for i, char := range []byte(value) {
+	for _, char := range []byte(value) {
 		letter := char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z'
 		digit := char >= '0' && char <= '9'
 		if !letter && !digit && char != '_' {
-			return false
-		}
-		if i == 0 && !(letter || char == '_') {
 			return false
 		}
 	}

@@ -6,6 +6,7 @@ import {
   request,
   currentLanguage,
 } from "./state.js";
+import type { Language } from "../types.js";
 
 export function createLanguageUI(actions) {
   const funcsHost = $("#func-list");
@@ -78,12 +79,12 @@ export function createLanguageUI(actions) {
         <button class="button danger small remove-symbol" aria-label="Eliminar símbolo">Eliminar</button>`;
 
       $(".symbol-name", row).addEventListener("input", (event) => {
-        symbols[index].name = event.target.value;
+        symbols[index].name = (event.currentTarget as HTMLInputElement).value;
         validate();
       });
       $(".symbol-arity", row).addEventListener("input", (event) => {
-        symbols[index].arity =
-          event.target.value === "" ? "" : Number(event.target.value);
+        const input = event.currentTarget as HTMLInputElement;
+        symbols[index].arity = input.value === "" ? "" : Number(input.value);
         validate();
       });
       $(".remove-symbol", row).addEventListener("click", () => {
@@ -101,7 +102,7 @@ export function createLanguageUI(actions) {
     validate();
   }
 
-  function loadLanguage(language) {
+  function loadLanguage(language: Language) {
     state.funcs = Object.entries(language.funcs || {}).map(([name, arity]) => ({
       name,
       arity,

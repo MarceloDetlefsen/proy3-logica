@@ -10,7 +10,28 @@ import {
 } from "./state.js";
 
 export function createFormulaUI(actions) {
-  const input = $("#formula-input");
+  const input = $("#formula-input") as HTMLTextAreaElement;
+  const highlight = $("#formula-highlight");
+
+  function renderHighlight(errors: { start: number; end: number }[] = []) {
+    const characters = Array.from(input.value);
+    const ranges = [...errors].sort((left, right) => left.start - right.start);
+    let output = "";
+    let cursor = 0;
+    for (const error of ranges) {
+      const start = Math.max(cursor, Math.min(characters.length, error.start));
+      const end = Math.max(start, Math.min(characters.length, error.end));
+      output += escapeHTML(characters.slice(cursor, start).join(""));
+      if (start === end) {
+        output += '<span class="error-caret">│</span>';
+      } else {
+        output += `<mark class="error-range">${escapeHTML(characters.slice(start, end).join(""))}</mark>`;
+      }
+      cursor = end;
+    }
+    output += escapeHTML(characters.slice(cursor).join(""));
+    highlight.innerHTML = output || " ";
+  }
 
   const analyze = debounce(async () => {
     state.analysis = null;
@@ -42,6 +63,7 @@ export function createFormulaUI(actions) {
     const host = $("#formula-status");
     host.replaceChildren();
     host.className = "status";
+    renderHighlight(result.errors);
 
     if (result.errors.length) {
       const list = document.createElement("ul");
@@ -94,7 +116,7 @@ export function createFormulaUI(actions) {
     for (const variable of variables) {
       const label = document.createElement("label");
       label.innerHTML = `${escapeHTML(variable)}<select class="cell" aria-label="Valor para ${escapeHTML(variable)}">${domainOptions(state.env[variable] || "")}</select>`;
-      const select = $("select", label);
+      const select = $("select", label) as HTMLSelectElement;
       select.addEventListener("change", () => {
         state.env[variable] = select.value;
         actions.updateEvaluate();
@@ -118,10 +140,17 @@ export function createFormulaUI(actions) {
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
-  input.addEventListener("input", analyze);
+  input.addEventListener("input", () => {
+    renderHighlight();
+    analyze();
+  });
+  input.addEventListener("scroll", () => {
+    highlight.scrollTop = input.scrollTop;
+    highlight.scrollLeft = input.scrollLeft;
+  });
   document.querySelectorAll("[data-insert]").forEach((button) => {
     button.addEventListener("click", () =>
-      insertAtCursor(button.dataset.insert),
+      insertAtCursor((button as HTMLElement).dataset.insert || ""),
     );
   });
 

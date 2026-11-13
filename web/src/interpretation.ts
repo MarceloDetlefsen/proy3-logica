@@ -9,6 +9,7 @@ import {
   currentInterpretation,
   domainOptions,
 } from "./state.js";
+import type { Interpretation } from "../types.js";
 
 export function createInterpretationUI(actions) {
   const tables = $("#tables");
@@ -200,7 +201,7 @@ export function createInterpretationUI(actions) {
   }
 
   function bindSelects(row, values) {
-    $$("select", row).forEach((select) => {
+    $$<HTMLSelectElement>("select", row).forEach((select) => {
       select.addEventListener("change", () => {
         values[Number(select.dataset.col)] = select.value;
         validate();
@@ -226,7 +227,7 @@ export function createInterpretationUI(actions) {
   }
 
   function addDomain() {
-    const field = $("#domain-input");
+    const field = $("#domain-input") as HTMLInputElement;
     const value = field.value.trim();
     if (!value) return;
     if (state.domain.includes(value)) {
@@ -244,7 +245,7 @@ export function createInterpretationUI(actions) {
     actions.analyze();
   }
 
-  function loadInterpretation(interpretation) {
+  function loadInterpretation(interpretation: Interpretation) {
     state.domain = [...(interpretation.domain || [])];
     state.funcRows = Object.fromEntries(
       Object.entries(interpretation.funcs || {}).map(([name, entries]) => [

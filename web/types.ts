@@ -1,12 +1,11 @@
 export type Term =
-  | { k: 'var'; name: string }
-  | { k: 'app'; fn: string; args: Term[] };
+  { k: "var"; name: string } | { k: "app"; fn: string; args: Term[] };
 
 export type Formula =
-  | { k: 'pred'; name: string; args: Term[] }
-  | { k: 'not'; f: Formula }
-  | { k: 'bin'; op: 'and' | 'or' | 'imp' | 'iff'; l: Formula; r: Formula }
-  | { k: 'quant'; q: 'forall' | 'exists'; v: string; f: Formula };
+  | { k: "pred"; name: string; args: Term[] }
+  | { k: "not"; f: Formula }
+  | { k: "bin"; op: "and" | "or" | "imp" | "iff"; l: Formula; r: Formula }
+  | { k: "quant"; q: "forall" | "exists"; v: string; f: Formula };
 
 export type Language = {
   funcs: Record<string, number>;
@@ -48,7 +47,7 @@ export type LogicError = {
   path?: string;
 };
 
-export type WarningKind = 'duplicate_tuple' | 'extra_env';
+export type WarningKind = "duplicate_tuple" | "extra_env";
 
 export type Warning = {
   kind: WarningKind;
@@ -71,9 +70,23 @@ export type Interp = Interpretation;
 
 export type Env = Record<string, string>;
 
+export type ExplanationBinding = {
+  variable: string;
+  value: string;
+};
+
 export type Explanation = {
   holds: boolean;
-  rule: 'pred' | 'not' | 'and' | 'or' | 'imp' | 'iff' | 'forall' | 'exists';
+  rule:
+    | "pred"
+    | "not"
+    | "and"
+    | "or"
+    | "imp"
+    | "iff"
+    | "forall"
+    | "exists"
+    | "mock";
   formula: string;
   summary: string;
   env: Record<string, string>;

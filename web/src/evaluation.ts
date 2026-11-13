@@ -9,7 +9,7 @@ import {
 
 export function createEvaluationUI(actions) {
   const resultHost = $("#result");
-  const button = $("#evaluate");
+  const button = $("#evaluate") as HTMLButtonElement;
 
   function updateButton() {
     const hasAssignments = state.analysis?.freeVars.every((variable) =>
@@ -106,7 +106,7 @@ export function createEvaluationUI(actions) {
     try {
       const response = await request("/api/evaluate", {
         language: currentLanguage(),
-        input: $("#formula-input").value,
+        input: ($("#formula-input") as HTMLTextAreaElement).value,
         interpretation: currentInterpretation(),
         env: state.env,
       });

@@ -267,11 +267,53 @@ a:focus-visible {
 .formula-box {
   position: relative;
 }
+.formula-highlight,
 .formula-box textarea {
+  width: 100%;
   min-height: 100px;
   resize: vertical;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 1.08rem;
+  line-height: 1.5;
+  padding: 10px 11px;
+  border: 1px solid #cdd7ce;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.formula-highlight {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--ink);
+}
+.formula-highlight .error-range {
+  color: #802c24;
+  background: #ffc9c1;
+  border-radius: 2px;
+}
+.formula-highlight .error-caret {
+  color: #a33d32;
+  background: #ffc9c1;
+  font-weight: 800;
+}
+.formula-box textarea {
+  position: relative;
+  z-index: 1;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--ink);
+  background: transparent;
+}
+.formula-box textarea::placeholder {
+  color: var(--muted);
+  -webkit-text-fill-color: var(--muted);
+  opacity: 1;
+}
+.formula-box textarea::selection {
+  background: #82b99a66;
 }
 .symbols {
   flex-wrap: wrap;

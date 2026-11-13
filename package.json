@@ -1,0 +1,10 @@
+{
+  "name": "proy3-logica-web",
+  "private": true,
+  "scripts": {
+    "build:web": "tsc -p web/tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

@@ -34,8 +34,8 @@ const demoExamples = [
 
 if (state.mockMode) {
   const panel = $("#mock-panel");
-  const selector = $("#example-select");
-  const loadButton = $("#load-example");
+  const selector = $("#example-select") as HTMLSelectElement;
+  const loadButton = $("#load-example") as HTMLButtonElement;
   panel.classList.remove("hidden");
   for (const name of demoExamples) {
     const option = document.createElement("option");

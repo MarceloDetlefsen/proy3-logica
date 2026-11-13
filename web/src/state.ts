@@ -1,4 +1,46 @@
-export const state = {
+import type {
+  AnalyzeResponse,
+  Env,
+  EvaluateResponse,
+  ExplanationBinding,
+  Interpretation,
+  Language,
+  LogicError,
+  ValidateLanguageRequest,
+  ValidateLanguageResponse,
+} from "../types.js";
+
+export type EditableSymbol = { name: string; arity: number | "" };
+
+export type DemoExample = {
+  name: string;
+  description: string;
+  language: Language;
+  input: string;
+  interpretation: Interpretation;
+  env: Env;
+  expect: {
+    errorCodes: string[];
+    value?: boolean;
+    witness?: ExplanationBinding;
+    counterexample?: ExplanationBinding;
+  };
+};
+
+export const state: {
+  funcs: EditableSymbol[];
+  preds: EditableSymbol[];
+  domain: string[];
+  funcRows: Record<string, string[][]>;
+  relRows: Record<string, string[][]>;
+  env: Env;
+  analysis: AnalyzeResponse | null;
+  langValid: boolean;
+  interpValid: boolean;
+  formulaValid: boolean;
+  mockMode: boolean;
+  example: DemoExample | null;
+} = {
   funcs: [],
   preds: [],
   domain: [],
@@ -13,10 +55,14 @@ export const state = {
   example: null,
 };
 
-export const $ = (selector, root = document) => root.querySelector(selector);
-export const $$ = (selector, root = document) => [
-  ...root.querySelectorAll(selector),
-];
+export const $ = <T extends Element = HTMLElement>(
+  selector: string,
+  root: ParentNode = document,
+): T => root.querySelector<T>(selector) as T;
+export const $$ = <T extends Element = HTMLElement>(
+  selector: string,
+  root: ParentNode = document,
+): T[] => [...root.querySelectorAll<T>(selector)];
 
 export function escapeHTML(value) {
   return String(value).replace(/[&<>"']/g, (char) => {
@@ -39,7 +85,31 @@ export function debounce(callback, delay = 250) {
   };
 }
 
-export async function request(path, body) {
+export function request(
+  path: "/api/language/validate",
+  body: ValidateLanguageRequest,
+): Promise<ValidateLanguageResponse>;
+export function request(
+  path: "/api/interpretation/validate",
+  body: { language: Language; interpretation: Interpretation },
+): Promise<{
+  errors: LogicError[];
+  warnings: { message: string; path?: string }[];
+}>;
+export function request(
+  path: "/api/analyze",
+  body: { input: string; language: Language },
+): Promise<AnalyzeResponse>;
+export function request(
+  path: "/api/evaluate",
+  body: {
+    input: string;
+    language: Language;
+    interpretation: Interpretation;
+    env: Env;
+  },
+): Promise<EvaluateResponse>;
+export async function request(path: string, body: unknown): Promise<any> {
   if (state.mockMode) {
     return mockRequest(path, body);
   }
@@ -55,7 +125,7 @@ export async function request(path, body) {
   return data;
 }
 
-function mockRequest(path, body) {
+function mockRequest(path: string, body: any): Promise<any> {
   const example = state.example;
   if (!example) {
     if (path === "/api/language/validate") {
@@ -116,7 +186,7 @@ function mockRequest(path, body) {
       return Promise.resolve({ errors: mockErrors(codes), warnings: [] });
     }
     const value = Boolean(example.expect?.value);
-    const explanation = {
+    const explanation: import("../types.js").Explanation = {
       holds: value,
       rule: "mock",
       formula: example.input,
@@ -142,7 +212,7 @@ function mockRequest(path, body) {
   return Promise.reject(new Error(`Endpoint mock desconocido: ${path}`));
 }
 
-function mockErrors(codes) {
+function mockErrors(codes: string[]): LogicError[] {
   return codes.map((code) => ({
     code,
     message: `El ejemplo contiene el caso ${code}.`,
@@ -152,7 +222,7 @@ function mockErrors(codes) {
   }));
 }
 
-function mockFreeVariables(example) {
+function mockFreeVariables(example: DemoExample): string[] {
   const assignedVariables = Object.keys(example.env || {});
   if (assignedVariables.length) return assignedVariables;
   const quantified = new Set(

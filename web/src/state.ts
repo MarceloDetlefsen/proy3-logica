@@ -128,19 +128,9 @@ export async function request(path: string, body: unknown): Promise<any> {
 function mockRequest(path: string, body: any): Promise<any> {
   const example = state.example;
   if (!example) {
-    if (path === "/api/language/validate") {
-      return Promise.resolve({
-        language: { funcs: {}, preds: {} },
-        errors: [],
-      });
-    }
-    if (path === "/api/interpretation/validate") {
-      return Promise.resolve({ errors: [], warnings: [] });
-    }
-    if (path === "/api/analyze") {
-      return Promise.resolve({ freeVars: [], warnings: [], errors: [] });
-    }
-    return Promise.resolve({ errors: [], warnings: [] });
+    return Promise.reject(
+      new Error("Carga un ejemplo para usar el modo de demostración."),
+    );
   }
 
   const codes = example.expect?.errorCodes || [];

@@ -1,12 +1,12 @@
 # Contrato del evaluador semántico
 
-Este documento define el JSON que compartirán el núcleo Go, la UI TypeScript y
-el futuro evaluador semántico. Los tipos Go viven en
+Este documento define el JSON que comparten el núcleo Go, la UI TypeScript y
+el evaluador semántico. Los tipos Go viven en
 `internal/logic/evaluator_contract.go` y sus equivalentes TypeScript en
 `web/types.ts`.
 
-Este cambio define únicamente el contrato. La validación de interpretaciones y
-la evaluación todavía son responsabilidades de una implementación posterior.
+El backend implementa la validación de interpretaciones y la evaluación
+semántica descritas aquí.
 
 ## Tipos base
 
@@ -180,7 +180,7 @@ nula cuando existe `result`.
 
 ## Flujo obligatorio
 
-El flujo de la futura implementación es:
+El flujo de evaluación implementado es:
 
 ```text
 validar lenguaje
@@ -197,6 +197,15 @@ evaluar semánticamente
 Cada etapa debe acumular sus errores. La evaluación solo puede comenzar cuando
 las etapas anteriores no produzcan errores; en particular, nunca debe generar
 `result` si `errors` no está vacío.
+
+La evaluación usa semántica de Tarski sobre el dominio finito: interpreta
+términos con las tablas de funciones, predicados por pertenencia de tuplas,
+conectivos con sus tablas de verdad y cuantificadores recorriendo el dominio.
+Cada cuantificador trabaja sobre una copia del entorno, por lo que una variable
+ligada sombrea correctamente una asignación externa con el mismo nombre. El
+presupuesto es de 100 000 pasos de evaluación por petición; al excederlo, se
+devuelve `EVAL_LIMIT` y no se incluye `result`. El árbol de explicación se
+recorta al superar 2 000 nodos, sin cambiar el valor calculado.
 
 ## Fixtures compartidos
 

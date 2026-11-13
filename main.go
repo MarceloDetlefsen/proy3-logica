@@ -22,5 +22,6 @@ func newServer() http.Handler {
 	server.HandleFunc("/api/language/validate", validateLanguageHandler)
 	server.HandleFunc("/api/analyze", analyzeHandler)
 	server.HandleFunc("/api/interpretation/validate", validateInterpretationHandler)
+	server.HandleFunc("/api/evaluate", evaluateHandler)
 	return server
 }

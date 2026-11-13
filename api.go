@@ -82,6 +82,19 @@ func validateInterpretationHandler(writer http.ResponseWriter, request *http.Req
 	writeJSON(writer, http.StatusOK, logic.ValidateInterpretation(body.Language, body.Interpretation))
 }
 
+func evaluateHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")
+		return
+	}
+	var body logic.EvaluateRequest
+	if err := decodeJSON(request, &body); err != nil {
+		writeAPIError(writer, http.StatusBadRequest, "El cuerpo JSON no es válido.")
+		return
+	}
+	writeJSON(writer, http.StatusOK, logic.EvaluateFormula(body))
+}
+
 func decodeJSON(request *http.Request, destination any) error {
 	decoder := json.NewDecoder(request.Body)
 	decoder.DisallowUnknownFields()

@@ -12,6 +12,7 @@ export function createLanguageUI(actions) {
   const funcsHost = $("#func-list");
   const predsHost = $("#pred-list");
   let errorSequence = 0;
+  let hasInteracted = false;
 
   function declarations() {
     const toDeclarations = (symbols) =>
@@ -94,6 +95,19 @@ export function createLanguageUI(actions) {
   }
 
   const validate = debounce(async () => {
+    if (
+      !hasInteracted &&
+      !state.example &&
+      state.funcs.length === 0 &&
+      state.preds.length === 0
+    ) {
+      state.langValid = false;
+      const host = $("#language-status");
+      host.replaceChildren();
+      host.className = "status";
+      actions.updateEvaluate();
+      return;
+    }
     try {
       const result = await request("/api/language/validate", declarations());
       state.langValid = result.errors.length === 0;
@@ -130,16 +144,19 @@ export function createLanguageUI(actions) {
         <button class="button danger small remove-symbol" aria-label="Eliminar símbolo">Eliminar</button>`;
 
       $(".symbol-name", row).addEventListener("input", (event) => {
+        hasInteracted = true;
         symbols[index].name = (event.currentTarget as HTMLInputElement).value;
         row.dataset.symbolName = symbols[index].name.trim();
         validate();
       });
       $(".symbol-arity", row).addEventListener("input", (event) => {
+        hasInteracted = true;
         const input = event.currentTarget as HTMLInputElement;
         symbols[index].arity = input.value === "" ? "" : Number(input.value);
         validate();
       });
       $(".remove-symbol", row).addEventListener("click", () => {
+        hasInteracted = true;
         symbols.splice(index, 1);
         renderAll();
       });
@@ -155,6 +172,7 @@ export function createLanguageUI(actions) {
   }
 
   function loadLanguage(language: Language) {
+    hasInteracted = true;
     state.funcs = Object.entries(language.funcs || {}).map(([name, arity]) => ({
       name,
       arity,
@@ -167,11 +185,13 @@ export function createLanguageUI(actions) {
   }
 
   $("#add-func").addEventListener("click", () => {
+    hasInteracted = true;
     state.funcs.push({ name: "", arity: 1 });
     renderSymbols("func");
     validate();
   });
   $("#add-pred").addEventListener("click", () => {
+    hasInteracted = true;
     state.preds.push({ name: "", arity: 1 });
     renderSymbols("pred");
     validate();

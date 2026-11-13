@@ -24,6 +24,11 @@ type analyzeRequest struct {
 	Language logic.Language `json:"language"`
 }
 
+type validateInterpretationRequest struct {
+	Language       logic.Language       `json:"language"`
+	Interpretation logic.Interpretation `json:"interpretation"`
+}
+
 func validateLanguageHandler(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPost {
 		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")
@@ -62,6 +67,19 @@ func analyzeHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	writeJSON(writer, http.StatusOK, logic.AnalyzeFormula(body.Input, body.Language))
+}
+
+func validateInterpretationHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")
+		return
+	}
+	var body validateInterpretationRequest
+	if err := decodeJSON(request, &body); err != nil {
+		writeAPIError(writer, http.StatusBadRequest, "El cuerpo JSON no es válido.")
+		return
+	}
+	writeJSON(writer, http.StatusOK, logic.ValidateInterpretation(body.Language, body.Interpretation))
 }
 
 func decodeJSON(request *http.Request, destination any) error {

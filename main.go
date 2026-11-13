@@ -21,5 +21,6 @@ func newServer() http.Handler {
 	server.Handle("/", http.FileServer(http.FS(webFiles)))
 	server.HandleFunc("/api/language/validate", validateLanguageHandler)
 	server.HandleFunc("/api/analyze", analyzeHandler)
+	server.HandleFunc("/api/interpretation/validate", validateInterpretationHandler)
 	return server
 }

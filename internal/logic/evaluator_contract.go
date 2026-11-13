@@ -98,6 +98,13 @@ const (
 	WarningExtraEnv       = "extra_env"
 )
 
+// Interpretation limits keep validation and later evaluation bounded.
+const (
+	MaxDomainSize         = 100
+	MaxTableEntries       = 10000
+	MaxIncompleteExamples = 5
+)
+
 func (entry FuncEntry) MarshalJSON() ([]byte, error) {
 	args := entry.Args
 	if args == nil {

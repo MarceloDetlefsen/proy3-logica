@@ -1,13 +1,55 @@
 {
   "name": "constante-verdadera",
   "description": "La negación de P(c) es verdadera.",
-  "language": {"funcs": {"c": 0}, "preds": {"P": 1}},
+  "language": {
+    "funcs": {
+      "c": 0
+    },
+    "preds": {
+      "P": 1
+    }
+  },
   "input": "¬P(c)",
   "interpretation": {
     "domain": ["0", "1"],
-    "funcs": {"c": [{"args": [], "value": "0"}]},
-    "rels": {"P": [["1"]]}
+    "funcs": {
+      "c": [
+        {
+          "args": [],
+          "value": "0"
+        }
+      ]
+    },
+    "rels": {
+      "P": [["1"]]
+    }
   },
   "env": {},
-  "expect": {"errorCodes": [], "value": true}
+  "expect": {
+    "errorCodes": [],
+    "value": true,
+    "explanation": {
+      "holds": true,
+      "rule": "not",
+      "formula": "¬P(c)",
+      "summary": "La negación invierte el valor de verdad de su subfórmula.",
+      "env": {},
+      "children": [
+        {
+          "holds": false,
+          "rule": "pred",
+          "formula": "P(c)",
+          "summary": "La tupla de términos no pertenece a la relación.",
+          "env": {},
+          "terms": [
+            {
+              "term": "c",
+              "value": "0"
+            }
+          ],
+          "children": []
+        }
+      ]
+    }
+  }
 }

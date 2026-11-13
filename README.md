@@ -5,10 +5,17 @@ Evaluador semántico de lógica de primer orden sobre interpretaciones finitas.
 ## Ejecutar
 
 ```bash
+npm install
+npm run build:web
 go run .
 ```
 
 Luego abrir <http://localhost:8080>.
+
+La UI está escrita solo en TypeScript vanilla bajo `web/src/`. `npm run
+build:web` genera los módulos que necesita el navegador dentro de `web/build/`;
+esa carpeta generada no se versiona. Hay que recompilar después de cambiar los
+`.ts` y antes de iniciar Go.
 
 El núcleo lógico está en `internal/logic/`. El contrato compartido entre Go y
 TypeScript está definido en `internal/logic` y `web/types.ts`.
@@ -23,8 +30,8 @@ Recibe declaraciones de funciones y predicados:
 
 ```json
 {
-  "funcs": [{"name": "c", "arity": 0}],
-  "preds": [{"name": "P", "arity": 1}]
+  "funcs": [{ "name": "c", "arity": 0 }],
+  "preds": [{ "name": "P", "arity": 1 }]
 }
 ```
 
@@ -40,8 +47,8 @@ Recibe una fórmula y un lenguaje ya definido:
 {
   "input": "forall x P(x)",
   "language": {
-    "funcs": {"c": 0},
-    "preds": {"P": 1}
+    "funcs": { "c": 0 },
+    "preds": { "P": 1 }
   }
 }
 ```
@@ -61,14 +68,16 @@ consistentes:
 
 ```json
 {
-  "language": {"funcs": {"f": 1}, "preds": {"P": 1}},
+  "language": { "funcs": { "f": 1 }, "preds": { "P": 1 } },
   "interpretation": {
     "domain": ["0", "1"],
-    "funcs": {"f": [
-      {"args": ["0"], "value": "1"},
-      {"args": ["1"], "value": "0"}
-    ]},
-    "rels": {"P": [["0"]]}
+    "funcs": {
+      "f": [
+        { "args": ["0"], "value": "1" },
+        { "args": ["1"], "value": "0" }
+      ]
+    },
+    "rels": { "P": [["0"]] }
   }
 }
 ```

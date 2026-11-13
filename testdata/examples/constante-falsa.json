@@ -1,13 +1,46 @@
 {
   "name": "constante-falsa",
   "description": "La constante c denota 0 y 0 no pertenece a P.",
-  "language": {"funcs": {"c": 0}, "preds": {"P": 1}},
+  "language": {
+    "funcs": {
+      "c": 0
+    },
+    "preds": {
+      "P": 1
+    }
+  },
   "input": "P(c)",
   "interpretation": {
     "domain": ["0", "1"],
-    "funcs": {"c": [{"args": [], "value": "0"}]},
-    "rels": {"P": [["1"]]}
+    "funcs": {
+      "c": [
+        {
+          "args": [],
+          "value": "0"
+        }
+      ]
+    },
+    "rels": {
+      "P": [["1"]]
+    }
   },
   "env": {},
-  "expect": {"errorCodes": [], "value": false}
+  "expect": {
+    "errorCodes": [],
+    "value": false,
+    "explanation": {
+      "holds": false,
+      "rule": "pred",
+      "formula": "P(c)",
+      "summary": "La tupla de términos no pertenece a la relación.",
+      "env": {},
+      "terms": [
+        {
+          "term": "c",
+          "value": "0"
+        }
+      ],
+      "children": []
+    }
+  }
 }

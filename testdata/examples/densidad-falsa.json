@@ -1,13 +1,225 @@
 {
   "name": "densidad-falsa",
   "description": "No hay un elemento estrictamente entre 1 y 2.",
-  "language": {"funcs": {}, "preds": {"Less": 2}},
+  "language": {
+    "funcs": {},
+    "preds": {
+      "Less": 2
+    }
+  },
   "input": "Less(x,y) → ∃z (Less(x,z) ∧ Less(z,y))",
   "interpretation": {
     "domain": ["1", "2", "3"],
     "funcs": {},
-    "rels": {"Less": [["1", "2"], ["1", "3"], ["2", "3"]]}
+    "rels": {
+      "Less": [
+        ["1", "2"],
+        ["1", "3"],
+        ["2", "3"]
+      ]
+    }
   },
-  "env": {"x": "1", "y": "2"},
-  "expect": {"errorCodes": [], "value": false}
+  "env": {
+    "x": "1",
+    "y": "2"
+  },
+  "expect": {
+    "errorCodes": [],
+    "value": false,
+    "explanation": {
+      "holds": false,
+      "rule": "imp",
+      "formula": "(Less(x, y) → ∃z (Less(x, z) ∧ Less(z, y)))",
+      "summary": "El conectivo imp aplicado a sus subfórmulas da false.",
+      "env": {
+        "x": "1",
+        "y": "2"
+      },
+      "decisive": [0, 1],
+      "children": [
+        {
+          "holds": true,
+          "rule": "pred",
+          "formula": "Less(x, y)",
+          "summary": "La tupla de términos pertenece a la relación.",
+          "env": {
+            "x": "1",
+            "y": "2"
+          },
+          "terms": [
+            {
+              "term": "x",
+              "value": "1"
+            },
+            {
+              "term": "y",
+              "value": "2"
+            }
+          ],
+          "children": []
+        },
+        {
+          "holds": false,
+          "rule": "exists",
+          "formula": "∃z (Less(x, z) ∧ Less(z, y))",
+          "summary": "La fórmula no se cumple para ningún elemento del dominio.",
+          "env": {
+            "x": "1",
+            "y": "2"
+          },
+          "checked": 3,
+          "domainSize": 3,
+          "children": [
+            {
+              "holds": false,
+              "rule": "and",
+              "formula": "(Less(x, z) ∧ Less(z, y))",
+              "summary": "El conectivo and aplicado a sus subfórmulas da false.",
+              "env": {
+                "x": "1",
+                "y": "2",
+                "z": "1"
+              },
+              "decisive": [0],
+              "children": [
+                {
+                  "holds": false,
+                  "rule": "pred",
+                  "formula": "Less(x, z)",
+                  "summary": "La tupla de términos no pertenece a la relación.",
+                  "env": {
+                    "x": "1",
+                    "z": "1"
+                  },
+                  "terms": [
+                    {
+                      "term": "x",
+                      "value": "1"
+                    },
+                    {
+                      "term": "z",
+                      "value": "1"
+                    }
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "holds": false,
+              "rule": "and",
+              "formula": "(Less(x, z) ∧ Less(z, y))",
+              "summary": "El conectivo and aplicado a sus subfórmulas da false.",
+              "env": {
+                "x": "1",
+                "y": "2",
+                "z": "2"
+              },
+              "decisive": [1],
+              "children": [
+                {
+                  "holds": true,
+                  "rule": "pred",
+                  "formula": "Less(x, z)",
+                  "summary": "La tupla de términos pertenece a la relación.",
+                  "env": {
+                    "x": "1",
+                    "z": "2"
+                  },
+                  "terms": [
+                    {
+                      "term": "x",
+                      "value": "1"
+                    },
+                    {
+                      "term": "z",
+                      "value": "2"
+                    }
+                  ],
+                  "children": []
+                },
+                {
+                  "holds": false,
+                  "rule": "pred",
+                  "formula": "Less(z, y)",
+                  "summary": "La tupla de términos no pertenece a la relación.",
+                  "env": {
+                    "y": "2",
+                    "z": "2"
+                  },
+                  "terms": [
+                    {
+                      "term": "z",
+                      "value": "2"
+                    },
+                    {
+                      "term": "y",
+                      "value": "2"
+                    }
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "holds": false,
+              "rule": "and",
+              "formula": "(Less(x, z) ∧ Less(z, y))",
+              "summary": "El conectivo and aplicado a sus subfórmulas da false.",
+              "env": {
+                "x": "1",
+                "y": "2",
+                "z": "3"
+              },
+              "decisive": [1],
+              "children": [
+                {
+                  "holds": true,
+                  "rule": "pred",
+                  "formula": "Less(x, z)",
+                  "summary": "La tupla de términos pertenece a la relación.",
+                  "env": {
+                    "x": "1",
+                    "z": "3"
+                  },
+                  "terms": [
+                    {
+                      "term": "x",
+                      "value": "1"
+                    },
+                    {
+                      "term": "z",
+                      "value": "3"
+                    }
+                  ],
+                  "children": []
+                },
+                {
+                  "holds": false,
+                  "rule": "pred",
+                  "formula": "Less(z, y)",
+                  "summary": "La tupla de términos no pertenece a la relación.",
+                  "env": {
+                    "y": "2",
+                    "z": "3"
+                  },
+                  "terms": [
+                    {
+                      "term": "z",
+                      "value": "3"
+                    },
+                    {
+                      "term": "y",
+                      "value": "2"
+                    }
+                  ],
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

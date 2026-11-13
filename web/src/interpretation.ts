@@ -1,0 +1,394 @@
+import {
+  $,
+  $$,
+  state,
+  escapeHTML,
+  request,
+  announce,
+  currentLanguage,
+  currentInterpretation,
+  domainOptions,
+} from "./state.js";
+import type { Interpretation } from "../types.js";
+
+export function createInterpretationUI(actions) {
+  const tables = $("#tables");
+  let hasInteracted = false;
+  const touchedSymbols = new Set<string>();
+
+  async function validate() {
+    if (!hasInteracted && !state.example) {
+      state.interpValid = false;
+      const status = $("#interpretation-status");
+      status.replaceChildren();
+      status.className = "status";
+      $$(".has-error", tables).forEach((element) => {
+        element.classList.remove("has-error");
+        element.removeAttribute("aria-invalid");
+      });
+      actions.updateEvaluate();
+      return;
+    }
+    const language = currentLanguage();
+    try {
+      const result = await request("/api/interpretation/validate", {
+        language,
+        interpretation: currentInterpretation(),
+      });
+      state.interpValid = result.errors.length === 0;
+      const visibleErrors = result.errors.filter((error) =>
+        isTouchedSymbolPath(error.path || ""),
+      );
+      const visibleWarnings = result.warnings.filter((warning) =>
+        isTouchedSymbolPath(warning.path || ""),
+      );
+      renderMessages(
+        visibleErrors,
+        visibleWarnings,
+        result.errors.length > visibleErrors.length ||
+          result.warnings.length > visibleWarnings.length,
+      );
+    } catch (error) {
+      state.interpValid = false;
+      announce("interpretation-status", error.message, "error");
+    }
+    actions.updateEvaluate();
+  }
+
+  function isTouchedSymbolPath(path: string) {
+    const match = path.match(/^(funcs|rels)\.([^.[\]]+)/);
+    return !match || touchedSymbols.has(`${match[1]}.${match[2]}`);
+  }
+
+  function renderMessages(errors, warnings, hasHiddenIssues = false) {
+    const host = $("#interpretation-status");
+    $$(".has-error", tables).forEach((element) => {
+      element.classList.remove("has-error");
+      element.removeAttribute("aria-invalid");
+    });
+    host.replaceChildren();
+    host.className = "status";
+    if (!errors.length && !warnings.length) {
+      if (hasHiddenIssues) return;
+      host.textContent = "Interpretación válida.";
+      host.className = "status valid";
+      return;
+    }
+
+    for (const [items, className] of [
+      [errors, "error-list"],
+      [warnings, "warning-list"],
+    ]) {
+      if (!items.length) continue;
+      const list = document.createElement("ul");
+      list.className = className;
+      for (const message of items) {
+        const item = document.createElement("li");
+        item.dataset.path = message.path || "";
+        const friendly = className === "error-list" ? friendlyError(message) : null;
+        item.textContent = friendly || `${message.path ? `${message.path}: ` : ""}${message.message}`;
+        if (className === "error-list") markErrorPath(message.path || "");
+        list.append(item);
+      }
+      host.append(list);
+    }
+  }
+
+  function friendlyError(error) {
+    if (
+      !["FUNC_NOT_IN_DOMAIN", "REL_NOT_IN_DOMAIN"].includes(error.code) ||
+      !error.message.includes('""')
+    ) {
+      return null;
+    }
+
+    const functionResult = error.path?.match(/^funcs\.([^.[\]]+)\[(\d+)\]\.value$/);
+    if (functionResult) {
+      return `Selecciona un resultado del dominio para la fila ${Number(functionResult[2]) + 1} de la función ${functionResult[1]}.`;
+    }
+    const functionArgument = error.path?.match(
+      /^funcs\.([^.[\]]+)\[(\d+)\]\.args\[(\d+)\]$/,
+    );
+    if (functionArgument) {
+      return `Selecciona un elemento del dominio para el argumento ${Number(functionArgument[3]) + 1}, fila ${Number(functionArgument[2]) + 1}, de la función ${functionArgument[1]}.`;
+    }
+    const relationElement = error.path?.match(/^rels\.([^.[\]]+)\[(\d+)\]\[(\d+)\]$/);
+    if (relationElement) {
+      return `Selecciona un elemento del dominio para la posición ${Number(relationElement[3]) + 1}, tupla ${Number(relationElement[2]) + 1}, de la relación ${relationElement[1]}.`;
+    }
+    return null;
+  }
+
+  function markErrorPath(path) {
+    const section = $$("section[data-symbol]", tables).find((candidate) => {
+      const prefix = candidate.dataset.symbolType === "func" ? "funcs" : "rels";
+      return (
+        path === `${prefix}.${candidate.dataset.symbol}` ||
+        path.startsWith(`${prefix}.${candidate.dataset.symbol}[`)
+      );
+    });
+    if (!section) return;
+    section.classList.add("has-error");
+    const row = $$("tr[data-path]", section).find((candidate) =>
+      path.startsWith(candidate.dataset.path),
+    );
+    if (row) {
+      row.classList.add("has-error");
+      row.setAttribute("aria-invalid", "true");
+    }
+  }
+
+  function renderTables() {
+    const previousFunctions = state.funcRows;
+    const previousRelations = state.relRows;
+    state.funcRows = {};
+    state.relRows = {};
+    tables.replaceChildren();
+    const language = currentLanguage();
+    const hasSymbols =
+      Object.keys(language.funcs).length > 0 ||
+      Object.keys(language.preds).length > 0;
+    if (!hasSymbols) {
+      const message = document.createElement("p");
+      message.className = "callout";
+      message.textContent =
+        "Las tablas aparecen aquí cuando declares funciones o predicados en el paso Lenguaje.";
+      tables.append(message);
+    }
+
+    for (const [name, arity] of Object.entries(language.funcs)) {
+      renderFunctionTable(name, arity, previousFunctions[name]);
+    }
+    for (const [name, arity] of Object.entries(language.preds)) {
+      renderRelationTable(name, arity, previousRelations[name]);
+    }
+    validate();
+  }
+
+  function renderFunctionTable(name, arity, existingRows) {
+    const section = document.createElement("section");
+    section.dataset.symbol = name;
+    section.dataset.symbolType = "func";
+    section.innerHTML = `<div class="row-head"><h3>Tabla de ${escapeHTML(name)} <span class="muted">(función, aridad ${arity}${arity === 0 ? ", constante" : ""})</span></h3></div>`;
+    const tuples = functionTuples(arity);
+    if (tuples === null) {
+      state.funcRows[name] = [];
+      const warning = document.createElement("p");
+      warning.className = "error-list";
+      warning.textContent = "La tabla requeriría más de 10 000 filas, el máximo admitido.";
+      section.append(warning);
+      tables.append(section);
+      return;
+    }
+    const table = document.createElement("table");
+    table.className = "table";
+    const headers = Array.from(
+      { length: arity },
+      (_, index) => `<th>Argumento ${index + 1}</th>`,
+    ).join("");
+    table.innerHTML = `<thead><tr>${headers}<th>Resultado</th></tr></thead><tbody></tbody>`;
+    appendTable(section, table);
+
+    const previousValues = new Map(
+      (existingRows || [])
+        .filter((values) => values.length === arity + 1)
+        .map((values) => [
+          JSON.stringify(values.slice(0, arity)),
+          values[arity] || "",
+        ]),
+    );
+    const rows = (state.funcRows[name] = tuples.map((args) => [
+      ...args,
+      previousValues.get(JSON.stringify(args)) || "",
+    ]));
+    const body = $("tbody", table);
+    const renderRows = () => {
+      body.replaceChildren();
+      rows.forEach((values, rowIndex) => {
+        const row = document.createElement("tr");
+        row.dataset.path = `funcs.${name}[${rowIndex}]`;
+        const argumentCells = Array.from({ length: arity }, (_, column) =>
+          `<td><span class="tuple-value">${escapeHTML(values[column])}</span></td>`,
+        ).join("");
+        row.innerHTML = `${argumentCells}${selectCell(name, "resultado", values, arity)}`;
+        bindSelects(row, values);
+        body.append(row);
+      });
+    };
+
+    renderRows();
+  }
+
+  function functionTuples(arity) {
+    if (arity === 0) return [[]];
+    if (arity < 0 || state.domain.length === 0) return [];
+    let count = 1;
+    for (let position = 0; position < arity; position++) {
+      count *= state.domain.length;
+      if (count > 10_000) return null;
+    }
+    let tuples = [[]];
+    for (let position = 0; position < arity; position++) {
+      tuples = tuples.flatMap((prefix) =>
+        state.domain.map((value) => [...prefix, value]),
+      );
+    }
+    return tuples;
+  }
+
+  function renderRelationTable(name, arity, existingRows) {
+    const section = document.createElement("section");
+    section.dataset.symbol = name;
+    section.dataset.symbolType = "rel";
+    section.innerHTML = `<div class="row-head"><h3>Relación ${escapeHTML(name)} <span class="muted">(aridad ${arity})</span></h3>
+      <button class="button small add-row">＋ Tupla</button></div>`;
+    const table = document.createElement("table");
+    table.className = "table";
+    const headers = Array.from(
+      { length: arity },
+      (_, index) => `<th>Posición ${index + 1}</th>`,
+    ).join("");
+    table.innerHTML = `<thead><tr>${headers}<th></th></tr></thead><tbody></tbody>`;
+    appendTable(section, table);
+
+    const rows = (state.relRows[name] = existingRows || [
+      Array(arity).fill(""),
+    ]);
+    const body = $("tbody", table);
+    const renderRows = () => {
+      body.replaceChildren();
+      rows.forEach((values, rowIndex) => {
+        const row = document.createElement("tr");
+        row.dataset.path = `rels.${name}[${rowIndex}]`;
+        const cells = Array.from({ length: arity }, (_, column) =>
+          selectCell(name, `posición ${column + 1}`, values, column),
+        ).join("");
+        row.innerHTML = `${cells}<td><button class="button danger small remove-row" aria-label="Eliminar tupla">×</button></td>`;
+        bindSelects(row, values);
+        $(".remove-row", row).addEventListener("click", () => {
+          hasInteracted = true;
+          touchSymbol(section);
+          rows.splice(rowIndex, 1);
+          renderRows();
+          validate();
+        });
+        body.append(row);
+      });
+    };
+
+    renderRows();
+    $(".add-row", section).addEventListener("click", () => {
+      hasInteracted = true;
+      touchSymbol(section);
+      rows.push(Array(arity).fill(""));
+      renderRows();
+      validate();
+    });
+  }
+
+  function appendTable(section, table) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-wrap";
+    wrapper.append(table);
+    section.append(wrapper);
+    tables.append(section);
+  }
+
+  function selectCell(name, label, values, column) {
+    return `<td><select class="cell" aria-label="${escapeHTML(name)} ${label}" data-col="${column}">${domainOptions(values[column])}</select></td>`;
+  }
+
+  function bindSelects(row, values) {
+    $$<HTMLSelectElement>("select", row).forEach((select) => {
+      select.addEventListener("change", () => {
+        hasInteracted = true;
+        const section = row.closest("section[data-symbol]") as HTMLElement | null;
+        if (section) touchSymbol(section);
+        values[Number(select.dataset.col)] = select.value;
+        validate();
+      });
+    });
+  }
+
+  function touchSymbol(section: HTMLElement) {
+    const prefix = section.dataset.symbolType === "func" ? "funcs" : "rels";
+    touchedSymbols.add(`${prefix}.${section.dataset.symbol}`);
+  }
+
+  function renderDomain() {
+    const host = $("#domain-chips");
+    host.replaceChildren();
+    state.domain.forEach((value, index) => {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.innerHTML = `${escapeHTML(value)} <button aria-label="Quitar ${escapeHTML(value)}" title="Quitar">×</button>`;
+      $("button", chip).addEventListener("click", () => {
+        hasInteracted = true;
+        state.domain.splice(index, 1);
+        renderDomain();
+        renderTables();
+        actions.analyze();
+      });
+      host.append(chip);
+    });
+  }
+
+  function addDomain() {
+    hasInteracted = true;
+    const field = $("#domain-input") as HTMLInputElement;
+    const value = field.value.trim();
+    if (!value) {
+      validate();
+      return;
+    }
+    if (state.domain.includes(value)) {
+      announce(
+        "interpretation-status",
+        `El elemento ${value} ya está en el dominio.`,
+        "error",
+      );
+      return;
+    }
+    state.domain.push(value);
+    field.value = "";
+    renderDomain();
+    renderTables();
+    actions.analyze();
+  }
+
+  function loadInterpretation(interpretation: Interpretation) {
+    hasInteracted = true;
+    for (const name of Object.keys(currentLanguage().funcs)) {
+      touchedSymbols.add(`funcs.${name}`);
+    }
+    for (const name of Object.keys(currentLanguage().preds)) {
+      touchedSymbols.add(`rels.${name}`);
+    }
+    state.domain = [...(interpretation.domain || [])];
+    state.funcRows = Object.fromEntries(
+      Object.entries(interpretation.funcs || {}).map(([name, entries]) => [
+        name,
+        entries.map((entry) => [...entry.args, entry.value]),
+      ]),
+    );
+    state.relRows = Object.fromEntries(
+      Object.entries(interpretation.rels || {}).map(([name, tuples]) => [
+        name,
+        tuples.map((tuple) => [...tuple]),
+      ]),
+    );
+    renderDomain();
+    renderTables();
+    actions.analyze();
+  }
+
+  $("#add-domain").addEventListener("click", addDomain);
+  $("#domain-input").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addDomain();
+    }
+  });
+
+  return { renderTables, validate, renderDomain, load: loadInterpretation };
+}

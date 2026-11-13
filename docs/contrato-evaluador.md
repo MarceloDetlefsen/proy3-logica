@@ -110,6 +110,13 @@ Los campos opcionales son:
 listas. Los warnings tienen `kind` `duplicate_tuple` o `extra_env` y pueden
 incluir `path`.
 
+La implementación actual valida además el dominio, las tablas de funciones y
+las relaciones. El dominio admite hasta 100 elementos y cada tabla hasta
+10 000 entradas. Las funciones deben cubrir exactamente el producto `D^n`;
+cuando faltan filas, `FUNC_INCOMPLETE` informa la cantidad y hasta cinco
+tuplas faltantes de ejemplo. Las rutas usan índices desde cero, por ejemplo
+`domain[1]`, `funcs.f[2].args[0]` y `rels.P[1][0]`.
+
 ### Evaluar una fórmula
 
 `EvaluateRequest` contiene el lenguaje, el texto de entrada, la interpretación

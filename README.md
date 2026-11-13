@@ -53,3 +53,28 @@ errores de lexer/parser o de símbolos permanecen en `errors` con status `200`;
 Los tipos equivalentes para la UI están en `web/types.ts`, incluyendo
 `ValidateLanguageRequest`, `ValidateLanguageResponse`, `AnalyzeRequest` y
 `AnalyzeResponse`.
+
+### `POST /api/interpretation/validate`
+
+Valida que una interpretación cubra el lenguaje y que sus tablas sean
+consistentes:
+
+```json
+{
+  "language": {"funcs": {"f": 1}, "preds": {"P": 1}},
+  "interpretation": {
+    "domain": ["0", "1"],
+    "funcs": {"f": [
+      {"args": ["0"], "value": "1"},
+      {"args": ["1"], "value": "0"}
+    ]},
+    "rels": {"P": [["0"]]}
+  }
+}
+```
+
+Responde con `InterpretationValidateResponse` (`errors` y `warnings`). Cada
+error incluye `path` para ubicar el dato inválido. El dominio admite hasta 100
+elementos y cada tabla de función o relación hasta 10 000 entradas. La
+completitud de una función se comprueba contra todas las tuplas de `D^n`; si
+faltan tuplas, el error informa cuántas faltan y muestra hasta cinco ejemplos.

@@ -1,29 +1,59 @@
 # Lista de verificación de la interfaz
 
-La aplicación web se sirve desde `web/` y utiliza la API Go existente.
+La aplicación sirve desde `web/` y consume la API Go existente. Para recorrerla
+sin el evaluador, inicia el servidor con `go run .` y abre
+`http://localhost:8080/?mock=1`. El mock usa los valores esperados guardados en
+`testdata/examples/`; la URL sin `mock=1` usa los endpoints reales.
 
-Para abrir los ejemplos sin depender del evaluador, inicia el servidor con
-`go run .` y visita `http://localhost:8080/?mock=1`. El mock reproduce los
-valores esperados guardados en `testdata/examples/`; el modo normal ejecuta
-las solicitudes contra la API.
+## Pruebas manuales previas a la entrega
 
-## Interacción
+### Lenguaje
 
-- [ ] Declarar constantes (aridad 0), funciones y predicados; comprobar errores de lenguaje.
-- [ ] Ingresar un dominio no vacío y completar todas las tablas de funciones y relaciones.
-- [ ] Probar fórmulas abiertas y cerradas, alias ASCII y símbolos insertados desde la barra.
-- [ ] Verificar asignaciones de todas las variables libres y que no se acepte evaluar mientras falten datos.
-- [ ] Revisar resultados verdaderos y falsos, testigos, contraejemplos y cuantificadores totalmente revisados.
-- [ ] Cargar los ocho ejemplos compartidos desde `?mock=1` y confirmar que se ve su descripción y resultado esperado.
-- [ ] Confirmar que toda entrada inválida muestra errores y nunca un valor de verdad.
+1. Agrega una constante con aridad 0 y comprueba que aparece en la lista.
+2. Declara una función unaria y otra binaria; revisa sus aridades.
+3. Declara un predicado unario y otro binario.
+4. Escribe dos símbolos con el mismo nombre y confirma que aparece el error.
+5. Escribe un nombre inválido y confirma que el error aparece junto al lenguaje.
+6. Elimina una declaración y verifica que desaparece su tabla de interpretación.
 
-## Accesibilidad y presentación
+### Interpretación
 
-- [ ] Usar únicamente teclado para navegar, editar, insertar conectivos y desplegar el árbol.
-- [ ] Comprobar nombres accesibles de controles, regiones de estado y mensajes de error.
-- [ ] Revisar los cuatro pasos en vista clara y oscura del navegador, a 360 px y escritorio.
-- [ ] Confirmar que el editor admite edición de teclado y que los errores llevan el cursor al rango afectado.
+7. Agrega un elemento al dominio con Enter y otro con el botón.
+8. Intenta agregar dos veces el mismo elemento y confirma que se rechaza.
+9. Intenta agregar un elemento vacío y confirma que no se crea un chip.
+10. Intenta agregar un elemento con caracteres inválidos y revisa el error del servidor.
+11. Define una constante con una única salida del dominio.
+12. Completa la tabla de una función unaria para cada elemento del dominio.
+13. Deja una entrada de función sin completar y revisa el error en su fila.
+14. Repite una tupla de función y confirma que la tabla la marca como inválida.
+15. Define una relación unaria con una tupla válida.
+16. Repite una tupla de relación y revisa la advertencia correspondiente.
+17. Cambia el dominio y confirma que se conservan los valores que siguen disponibles.
+18. Cambia la aridad de una función y confirma que la tabla se reconstruye.
+
+### Fórmula y entorno
+
+19. Inserta cada conectivo desde la barra y confirma que aparece en la posición del cursor.
+20. Escribe una fórmula con alias ASCII y confirma que se analiza.
+21. Introduce una fórmula sintácticamente inválida y activa el mensaje para seleccionar su rango.
+22. Escribe una fórmula abierta con dos variables libres y confirma que aparecen dos selectores.
+23. Escribe una fórmula cerrada y confirma que no aparece ningún selector de entorno.
+24. Cambia el dominio después de asignar una variable y verifica que se puede elegir un valor vigente.
+
+### Evaluación, mock y accesibilidad
+
+25. Evalúa una fórmula verdadera y una falsa; comprueba que el resultado anterior se marca desactualizado al editar datos.
+26. Evalúa un existencial verdadero y revisa el testigo.
+27. Evalúa un universal falso y revisa el contraejemplo.
+28. Evalúa un universal verdadero y un existencial falso; confirma el conteo completo del dominio.
+29. Provoca un error en cada sección y confirma que no aparece ningún valor de verdad.
+30. Carga los ocho ejemplos desde `?mock=1`, revisa descripción y resultado esperado, y repite un caso en modo real.
+31. Recorre todas las secciones, botones, selectores y árbol usando solo teclado.
+32. Comprueba nombres accesibles, regiones de estado y lectura de errores con lector de pantalla.
+33. Revisa los temas claro y oscuro a 360 px y en escritorio; confirma que no hay desbordamiento horizontal.
 
 ## Contrato de la API
 
-La UI consume `/api/language/validate`, `/api/interpretation/validate`, `/api/analyze` y `/api/evaluate`. Los errores del analizador tienen offsets en runes, igual que las posiciones devueltas por el lexer Go.
+La UI consume `/api/language/validate`, `/api/interpretation/validate`,
+`/api/analyze` y `/api/evaluate`. Los errores del analizador usan offsets en
+runes, igual que las posiciones que devuelve el lexer Go.

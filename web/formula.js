@@ -112,6 +112,12 @@ export function createFormulaUI(actions) {
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
+  function loadFormula(value, environment = {}) {
+    input.value = value;
+    state.env = { ...environment };
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
   input.addEventListener("input", analyze);
   document.querySelectorAll("[data-insert]").forEach((button) => {
     button.addEventListener("click", () =>
@@ -119,5 +125,5 @@ export function createFormulaUI(actions) {
     );
   });
 
-  return { analyze };
+  return { analyze, load: loadFormula };
 }

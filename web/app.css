@@ -328,6 +328,24 @@ a:focus-visible {
   padding: 18px;
   margin-top: 16px;
 }
+.result.stale {
+  opacity: 0.72;
+  outline: 2px dashed var(--amber);
+}
+.result.stale::before {
+  content: "Resultado desactualizado";
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.table tr.has-error .cell {
+  border-color: var(--red);
+  background: var(--red-bg);
+}
+section.has-error .table {
+  border-left: 3px solid var(--red);
+}
 .result.truth {
   background: var(--pale);
   color: #14573b;

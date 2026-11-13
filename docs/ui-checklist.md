@@ -2,6 +2,11 @@
 
 La aplicación web se sirve desde `web/` y utiliza la API Go existente.
 
+Para abrir los ejemplos sin depender del evaluador, inicia el servidor con
+`go run .` y visita `http://localhost:8080/?mock=1`. El mock reproduce los
+valores esperados guardados en `testdata/examples/`; el modo normal ejecuta
+las solicitudes contra la API.
+
 ## Interacción
 
 - [ ] Declarar constantes (aridad 0), funciones y predicados; comprobar errores de lenguaje.
@@ -9,6 +14,7 @@ La aplicación web se sirve desde `web/` y utiliza la API Go existente.
 - [ ] Probar fórmulas abiertas y cerradas, alias ASCII y símbolos insertados desde la barra.
 - [ ] Verificar asignaciones de todas las variables libres y que no se acepte evaluar mientras falten datos.
 - [ ] Revisar resultados verdaderos y falsos, testigos, contraejemplos y cuantificadores totalmente revisados.
+- [ ] Cargar los ocho ejemplos compartidos desde `?mock=1` y confirmar que se ve su descripción y resultado esperado.
 - [ ] Confirmar que toda entrada inválida muestra errores y nunca un valor de verdad.
 
 ## Accesibilidad y presentación

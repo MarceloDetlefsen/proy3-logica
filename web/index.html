@@ -17,6 +17,34 @@
       </p>
     </header>
     <main>
+      <section
+        class="panel hidden"
+        id="mock-panel"
+        aria-labelledby="mock-title"
+      >
+        <div class="toolbar">
+          <div>
+            <h2 id="mock-title">Modo de demostración</h2>
+            <p class="intro">
+              Carga un ejemplo compartido para recorrer la interfaz sin conectar
+              el evaluador Go.
+            </p>
+          </div>
+          <span class="section-label">Mock activo</span>
+        </div>
+        <div class="callout">
+          Los valores de verdad y las explicaciones de estos ejemplos vienen
+          precalculados. Usa el modo normal para evaluar con el motor Go.
+        </div>
+        <label class="section-label" for="example-select">Ejemplo</label>
+        <div class="inline">
+          <select class="input" id="example-select">
+            <option value="">Selecciona un ejemplo…</option>
+          </select>
+          <button class="button" id="load-example" disabled>Cargar</button>
+        </div>
+        <p id="example-description" class="hint" aria-live="polite"></p>
+      </section>
       <nav class="steps" aria-label="Secciones de trabajo">
         <a class="step-link active" href="#language"><b>1</b>Lenguaje</a
         ><a class="step-link" href="#interpretation"><b>2</b>Interpretación</a

@@ -30,6 +30,10 @@ export function createInterpretationUI(actions) {
 
   function renderMessages(errors, warnings) {
     const host = $("#interpretation-status");
+    $$(".has-error", tables).forEach((element) => {
+      element.classList.remove("has-error");
+      element.removeAttribute("aria-invalid");
+    });
     host.replaceChildren();
     host.className = "status";
     if (!errors.length && !warnings.length) {
@@ -49,9 +53,29 @@ export function createInterpretationUI(actions) {
         const item = document.createElement("li");
         item.dataset.path = message.path || "";
         item.textContent = `${message.path ? `${message.path}: ` : ""}${message.message}`;
+        if (className === "error-list") markErrorPath(message.path || "");
         list.append(item);
       }
       host.append(list);
+    }
+  }
+
+  function markErrorPath(path) {
+    const section = $$("section[data-symbol]", tables).find((candidate) => {
+      const prefix = candidate.dataset.symbolType === "func" ? "funcs" : "rels";
+      return (
+        path === `${prefix}.${candidate.dataset.symbol}` ||
+        path.startsWith(`${prefix}.${candidate.dataset.symbol}[`)
+      );
+    });
+    if (!section) return;
+    section.classList.add("has-error");
+    const row = $$("tr[data-path]", section).find((candidate) =>
+      path.startsWith(candidate.dataset.path),
+    );
+    if (row) {
+      row.classList.add("has-error");
+      row.setAttribute("aria-invalid", "true");
     }
   }
 
@@ -74,6 +98,8 @@ export function createInterpretationUI(actions) {
 
   function renderFunctionTable(name, arity, existingRows) {
     const section = document.createElement("section");
+    section.dataset.symbol = name;
+    section.dataset.symbolType = "func";
     section.innerHTML = `<div class="row-head"><h3>Tabla de ${escapeHTML(name)} <span class="muted">(función, aridad ${arity}${arity === 0 ? ", constante" : ""})</span></h3>
       <button class="button small add-row">＋ Fila</button></div>`;
     const table = document.createElement("table");
@@ -93,6 +119,7 @@ export function createInterpretationUI(actions) {
       body.replaceChildren();
       rows.forEach((values, rowIndex) => {
         const row = document.createElement("tr");
+        row.dataset.path = `funcs.${name}[${rowIndex}]`;
         const argumentCells = Array.from({ length: arity }, (_, column) =>
           selectCell(name, `argumento ${column + 1}`, values, column),
         ).join("");
@@ -117,6 +144,8 @@ export function createInterpretationUI(actions) {
 
   function renderRelationTable(name, arity, existingRows) {
     const section = document.createElement("section");
+    section.dataset.symbol = name;
+    section.dataset.symbolType = "rel";
     section.innerHTML = `<div class="row-head"><h3>Relación ${escapeHTML(name)} <span class="muted">(aridad ${arity})</span></h3>
       <button class="button small add-row">＋ Tupla</button></div>`;
     const table = document.createElement("table");
@@ -136,6 +165,7 @@ export function createInterpretationUI(actions) {
       body.replaceChildren();
       rows.forEach((values, rowIndex) => {
         const row = document.createElement("tr");
+        row.dataset.path = `rels.${name}[${rowIndex}]`;
         const cells = Array.from({ length: arity }, (_, column) =>
           selectCell(name, `posición ${column + 1}`, values, column),
         ).join("");
@@ -214,6 +244,25 @@ export function createInterpretationUI(actions) {
     actions.analyze();
   }
 
+  function loadInterpretation(interpretation) {
+    state.domain = [...(interpretation.domain || [])];
+    state.funcRows = Object.fromEntries(
+      Object.entries(interpretation.funcs || {}).map(([name, entries]) => [
+        name,
+        entries.map((entry) => [...entry.args, entry.value]),
+      ]),
+    );
+    state.relRows = Object.fromEntries(
+      Object.entries(interpretation.rels || {}).map(([name, tuples]) => [
+        name,
+        tuples.map((tuple) => [...tuple]),
+      ]),
+    );
+    renderDomain();
+    renderTables();
+    actions.analyze();
+  }
+
   $("#add-domain").addEventListener("click", addDomain);
   $("#domain-input").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -222,5 +271,5 @@ export function createInterpretationUI(actions) {
     }
   });
 
-  return { renderTables, validate, renderDomain };
+  return { renderTables, validate, renderDomain, load: loadInterpretation };
 }

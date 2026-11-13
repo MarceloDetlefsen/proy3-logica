@@ -1,4 +1,4 @@
-import { $$ } from "./state.js";
+import { $$, $, state } from "./state.js";
 import { createLanguageUI } from "./language.js";
 import { createInterpretationUI } from "./interpretation.js";
 import { createFormulaUI } from "./formula.js";
@@ -18,8 +18,53 @@ Object.assign(actions, {
   updateEvaluate: evaluation.updateButton,
 });
 
-createLanguageUI(actions);
+const language = createLanguageUI(actions);
 interpretation.renderDomain();
+
+const demoExamples = [
+  "universal-verdadero",
+  "sin-sucesor",
+  "min-existe",
+  "densidad-verdadera",
+  "densidad-falsa",
+  "constante-verdadera",
+  "constante-falsa",
+  "funcion-sucesor",
+];
+
+if (state.mockMode) {
+  const panel = $("#mock-panel");
+  const selector = $("#example-select");
+  const loadButton = $("#load-example");
+  panel.classList.remove("hidden");
+  for (const name of demoExamples) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    selector.append(option);
+  }
+  selector.addEventListener("change", () => {
+    loadButton.disabled = !selector.value;
+  });
+  loadButton.addEventListener("click", async () => {
+    if (!selector.value) return;
+    loadButton.disabled = true;
+    $("#example-description").textContent = "Cargando ejemplo…";
+    try {
+      const response = await fetch(`/examples/${selector.value}.json`);
+      if (!response.ok) throw new Error("No se pudo cargar el ejemplo.");
+      state.example = await response.json();
+      language.load(state.example.language);
+      interpretation.load(state.example.interpretation);
+      formula.load(state.example.input, state.example.env);
+      $("#example-description").textContent = state.example.description;
+    } catch (error) {
+      $("#example-description").textContent = error.message;
+    } finally {
+      loadButton.disabled = false;
+    }
+  });
+}
 
 $$(".step-link").forEach((link) => {
   link.addEventListener("click", () => {
@@ -27,4 +72,18 @@ $$(".step-link").forEach((link) => {
       item.classList.toggle("active", item === link);
     });
   });
+});
+
+function markResultStale() {
+  const result = $("#result .result");
+  if (!result || result.classList.contains("stale")) return;
+  result.classList.add("stale");
+  $("#evaluation-status").textContent =
+    "Los datos cambiaron. Vuelve a evaluar para actualizar el resultado.";
+}
+
+["#language", "#interpretation", "#formula"].forEach((selector) => {
+  $(selector).addEventListener("input", markResultStale, true);
+  $(selector).addEventListener("change", markResultStale, true);
+  $(selector).addEventListener("click", markResultStale, true);
 });

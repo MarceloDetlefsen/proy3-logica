@@ -101,6 +101,18 @@ export function createLanguageUI(actions) {
     validate();
   }
 
+  function loadLanguage(language) {
+    state.funcs = Object.entries(language.funcs || {}).map(([name, arity]) => ({
+      name,
+      arity,
+    }));
+    state.preds = Object.entries(language.preds || {}).map(([name, arity]) => ({
+      name,
+      arity,
+    }));
+    renderAll();
+  }
+
   $("#add-func").addEventListener("click", () => {
     state.funcs.push({ name: "", arity: 1 });
     renderSymbols("func");
@@ -119,5 +131,6 @@ export function createLanguageUI(actions) {
   return {
     getLanguage: currentLanguage,
     validate,
+    load: loadLanguage,
   };
 }

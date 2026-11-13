@@ -14,6 +14,7 @@ import type { Interpretation } from "../types.js";
 export function createInterpretationUI(actions) {
   const tables = $("#tables");
   let hasInteracted = false;
+  const touchedSymbols = new Set<string>();
 
   async function validate() {
     if (!hasInteracted && !state.example) {
@@ -35,7 +36,18 @@ export function createInterpretationUI(actions) {
         interpretation: currentInterpretation(),
       });
       state.interpValid = result.errors.length === 0;
-      renderMessages(result.errors, result.warnings);
+      const visibleErrors = result.errors.filter((error) =>
+        isTouchedSymbolPath(error.path || ""),
+      );
+      const visibleWarnings = result.warnings.filter((warning) =>
+        isTouchedSymbolPath(warning.path || ""),
+      );
+      renderMessages(
+        visibleErrors,
+        visibleWarnings,
+        result.errors.length > visibleErrors.length ||
+          result.warnings.length > visibleWarnings.length,
+      );
     } catch (error) {
       state.interpValid = false;
       announce("interpretation-status", error.message, "error");
@@ -43,7 +55,12 @@ export function createInterpretationUI(actions) {
     actions.updateEvaluate();
   }
 
-  function renderMessages(errors, warnings) {
+  function isTouchedSymbolPath(path: string) {
+    const match = path.match(/^(funcs|rels)\.([^.[\]]+)/);
+    return !match || touchedSymbols.has(`${match[1]}.${match[2]}`);
+  }
+
+  function renderMessages(errors, warnings, hasHiddenIssues = false) {
     const host = $("#interpretation-status");
     $$(".has-error", tables).forEach((element) => {
       element.classList.remove("has-error");
@@ -52,6 +69,7 @@ export function createInterpretationUI(actions) {
     host.replaceChildren();
     host.className = "status";
     if (!errors.length && !warnings.length) {
+      if (hasHiddenIssues) return;
       host.textContent = "Interpretación válida.";
       host.className = "status valid";
       return;
@@ -223,6 +241,7 @@ export function createInterpretationUI(actions) {
         bindSelects(row, values);
         $(".remove-row", row).addEventListener("click", () => {
           hasInteracted = true;
+          touchSymbol(section);
           rows.splice(rowIndex, 1);
           renderRows();
           validate();
@@ -234,6 +253,7 @@ export function createInterpretationUI(actions) {
     renderRows();
     $(".add-row", section).addEventListener("click", () => {
       hasInteracted = true;
+      touchSymbol(section);
       rows.push(Array(arity).fill(""));
       renderRows();
       validate();
@@ -256,10 +276,17 @@ export function createInterpretationUI(actions) {
     $$<HTMLSelectElement>("select", row).forEach((select) => {
       select.addEventListener("change", () => {
         hasInteracted = true;
+        const section = row.closest("section[data-symbol]") as HTMLElement | null;
+        if (section) touchSymbol(section);
         values[Number(select.dataset.col)] = select.value;
         validate();
       });
     });
+  }
+
+  function touchSymbol(section: HTMLElement) {
+    const prefix = section.dataset.symbolType === "func" ? "funcs" : "rels";
+    touchedSymbols.add(`${prefix}.${section.dataset.symbol}`);
   }
 
   function renderDomain() {
@@ -305,6 +332,12 @@ export function createInterpretationUI(actions) {
 
   function loadInterpretation(interpretation: Interpretation) {
     hasInteracted = true;
+    for (const name of Object.keys(currentLanguage().funcs)) {
+      touchedSymbols.add(`funcs.${name}`);
+    }
+    for (const name of Object.keys(currentLanguage().preds)) {
+      touchedSymbols.add(`rels.${name}`);
+    }
     state.domain = [...(interpretation.domain || [])];
     state.funcRows = Object.fromEntries(
       Object.entries(interpretation.funcs || {}).map(([name, entries]) => [

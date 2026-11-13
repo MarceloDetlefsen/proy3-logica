@@ -1,0 +1,9 @@
+{
+  "name": "invalido-entorno-faltante",
+  "description": "Falta asignar la variable libre x.",
+  "language": {"funcs": {}, "preds": {"P": 1}},
+  "input": "P(x)",
+  "interpretation": {"domain": ["0"], "funcs": {}, "rels": {"P": [["0"]]}},
+  "env": {},
+  "expect": {"errorCodes": ["ENV_MISSING"]}
+}

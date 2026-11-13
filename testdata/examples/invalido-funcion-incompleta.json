@@ -1,0 +1,9 @@
+{
+  "name": "invalido-funcion-incompleta",
+  "description": "Falta una entrada de la tabla de la función.",
+  "language": {"funcs": {"f": 1}, "preds": {"P": 1}},
+  "input": "P(f(x))",
+  "interpretation": {"domain": ["0", "1"], "funcs": {"f": [{"args": ["0"], "value": "1"}]}, "rels": {"P": [["0"], ["1"]]}},
+  "env": {"x": "0"},
+  "expect": {"errorCodes": ["FUNC_INCOMPLETE"]}
+}

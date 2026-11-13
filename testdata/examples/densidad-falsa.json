@@ -1,0 +1,13 @@
+{
+  "name": "densidad-falsa",
+  "description": "No hay un elemento estrictamente entre 1 y 2.",
+  "language": {"funcs": {}, "preds": {"Less": 2}},
+  "input": "Less(x,y) → ∃z (Less(x,z) ∧ Less(z,y))",
+  "interpretation": {
+    "domain": ["1", "2", "3"],
+    "funcs": {},
+    "rels": {"Less": [["1", "2"], ["1", "3"], ["2", "3"]]}
+  },
+  "env": {"x": "1", "y": "2"},
+  "expect": {"errorCodes": [], "value": false}
+}

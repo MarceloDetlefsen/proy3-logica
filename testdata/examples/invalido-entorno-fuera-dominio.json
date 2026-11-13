@@ -1,0 +1,9 @@
+{
+  "name": "invalido-entorno-fuera-dominio",
+  "description": "El entorno asigna x a un elemento inexistente.",
+  "language": {"funcs": {}, "preds": {"P": 1}},
+  "input": "P(x)",
+  "interpretation": {"domain": ["0"], "funcs": {}, "rels": {"P": [["0"]]}},
+  "env": {"x": "1"},
+  "expect": {"errorCodes": ["ENV_NOT_IN_DOMAIN"]}
+}

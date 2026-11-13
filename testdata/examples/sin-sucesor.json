@@ -1,0 +1,13 @@
+{
+  "name": "sin-sucesor",
+  "description": "No todo elemento tiene un sucesor estricto.",
+  "language": {"funcs": {}, "preds": {"Less": 2}},
+  "input": "∀x ∃y Less(x,y)",
+  "interpretation": {
+    "domain": ["1", "2", "3"],
+    "funcs": {},
+    "rels": {"Less": [["1", "2"], ["1", "3"], ["2", "3"]]}
+  },
+  "env": {},
+  "expect": {"errorCodes": [], "value": false, "counterexample": {"variable": "x", "value": "3"}}
+}

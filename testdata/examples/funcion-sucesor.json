@@ -1,0 +1,17 @@
+{
+  "name": "funcion-sucesor",
+  "description": "El sucesor alterna la paridad y la fórmula falla en 2.",
+  "language": {"funcs": {"f": 1}, "preds": {"Even": 1}},
+  "input": "∀x (Even(x) → ¬Even(f(x)))",
+  "interpretation": {
+    "domain": ["0", "1", "2"],
+    "funcs": {"f": [
+      {"args": ["0"], "value": "1"},
+      {"args": ["1"], "value": "2"},
+      {"args": ["2"], "value": "0"}
+    ]},
+    "rels": {"Even": [["0"], ["2"]]}
+  },
+  "env": {},
+  "expect": {"errorCodes": [], "value": false, "counterexample": {"variable": "x", "value": "2"}}
+}

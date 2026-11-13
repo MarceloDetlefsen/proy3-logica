@@ -1,0 +1,9 @@
+{
+  "name": "invalido-aridad-relacion",
+  "description": "Una tupla de relación tiene una aridad incorrecta.",
+  "language": {"funcs": {}, "preds": {"P": 1}},
+  "input": "P(x)",
+  "interpretation": {"domain": ["0", "1"], "funcs": {}, "rels": {"P": [["0", "1"]]}},
+  "env": {"x": "0"},
+  "expect": {"errorCodes": ["REL_ARITY"]}
+}

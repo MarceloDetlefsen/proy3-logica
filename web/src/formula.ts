@@ -8,6 +8,7 @@ import {
   currentLanguage,
   domainOptions,
 } from "./state.js";
+import type { Formula, Term, Warning } from "../types.js";
 
 export function createFormulaUI(actions) {
   const input = $("#formula-input") as HTMLTextAreaElement;
@@ -99,7 +100,82 @@ export function createFormulaUI(actions) {
       host.className = "status valid";
     }
 
+    const warnings = [
+      ...result.warnings,
+      ...(result.formula ? quantifierWarnings(result.formula) : []),
+    ];
+    if (warnings.length) {
+      const warningList = document.createElement("ul");
+      warningList.className = "warning-list";
+      for (const warning of warnings) {
+        const item = document.createElement("li");
+        item.textContent = `${warning.path ? `${warning.path}: ` : ""}${warning.message}`;
+        warningList.append(item);
+      }
+      host.append(warningList);
+    }
+
     renderFreeVariables(result.errors.length ? [] : result.freeVars);
+  }
+
+  function quantifierWarnings(formula: Formula): Warning[] {
+    const warnings: Warning[] = [];
+    const hasFreeOccurrence = (node: Formula, variable: string): boolean => {
+      switch (node.k) {
+        case "pred":
+          return node.args.some((term) => termHasVariable(term, variable));
+        case "not":
+          return hasFreeOccurrence(node.f, variable);
+        case "bin":
+          return (
+            hasFreeOccurrence(node.l, variable) ||
+            hasFreeOccurrence(node.r, variable)
+          );
+        case "quant":
+          return node.v === variable
+            ? false
+            : hasFreeOccurrence(node.f, variable);
+      }
+    };
+    const visit = (node: Formula, bound: Set<string>) => {
+      switch (node.k) {
+        case "not":
+          visit(node.f, bound);
+          break;
+        case "bin":
+          visit(node.l, bound);
+          visit(node.r, bound);
+          break;
+        case "quant": {
+          if (!hasFreeOccurrence(node.f, node.v)) {
+            warnings.push({
+              kind: "quantifier_vacuous",
+              message: `El cuantificador ${node.q === "forall" ? "∀" : "∃"}${node.v} no afecta el valor de su subfórmula.`,
+              path: "formula",
+            });
+          }
+          if (bound.has(node.v)) {
+            warnings.push({
+              kind: "quantifier_shadowed",
+              message: `El cuantificador interno vuelve a declarar ${node.v} y oculta la asignación exterior.`,
+              path: "formula",
+            });
+          }
+          const next = new Set(bound);
+          next.add(node.v);
+          visit(node.f, next);
+          break;
+        }
+      }
+    };
+    visit(formula, new Set());
+    return warnings;
+  }
+
+  function termHasVariable(term: Term, variable: string): boolean {
+    return term.k === "var"
+      ? term.name === variable
+      : term.args.some((argument) => termHasVariable(argument, variable));
   }
 
   function renderFreeVariables(variables) {

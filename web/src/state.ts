@@ -2,6 +2,7 @@ import type {
   AnalyzeResponse,
   Env,
   EvaluateResponse,
+  Explanation,
   ExplanationBinding,
   Interpretation,
   Language,
@@ -24,6 +25,7 @@ export type DemoExample = {
     value?: boolean;
     witness?: ExplanationBinding;
     counterexample?: ExplanationBinding;
+    explanation?: Explanation;
   };
 };
 
@@ -128,9 +130,17 @@ export async function request(path: string, body: unknown): Promise<any> {
 function mockRequest(path: string, body: any): Promise<any> {
   const example = state.example;
   if (!example) {
-    return Promise.reject(
-      new Error("Carga un ejemplo para usar el modo de demostración."),
-    );
+    if (path === "/api/language/validate") {
+      return Promise.resolve({ language: body, errors: [] });
+    }
+    if (path === "/api/interpretation/validate") {
+      return Promise.resolve({ errors: mockErrors(["DOMAIN_EMPTY"]), warnings: [] });
+    }
+    return Promise.resolve({
+      freeVars: [],
+      warnings: [],
+      errors: mockErrors(["MOCK_NO_EXAMPLE"]),
+    });
   }
 
   const codes = example.expect?.errorCodes || [];
@@ -176,17 +186,11 @@ function mockRequest(path: string, body: any): Promise<any> {
       return Promise.resolve({ errors: mockErrors(codes), warnings: [] });
     }
     const value = Boolean(example.expect?.value);
-    const explanation: import("../types.js").Explanation = {
-      holds: value,
-      rule: "mock",
-      formula: example.input,
-      summary: "Resultado de ejemplo precalculado para recorrer la interfaz.",
-      env: example.env || {},
-      children: [],
-    };
-    if (example.expect?.witness) explanation.witness = example.expect.witness;
-    if (example.expect?.counterexample) {
-      explanation.counterexample = example.expect.counterexample;
+    const explanation = example.expect.explanation;
+    if (!explanation) {
+      return Promise.reject(
+        new Error("Este ejemplo todavía no incluye un árbol de explicación."),
+      );
     }
     return Promise.resolve({
       errors: [],
@@ -208,7 +212,11 @@ function mockErrors(codes: string[]): LogicError[] {
     message: `El ejemplo contiene el caso ${code}.`,
     start: 0,
     end: 0,
-    path: code.startsWith("ENV_") ? "env" : undefined,
+    path: code.startsWith("ENV_")
+      ? "env"
+      : code === "DOMAIN_EMPTY"
+        ? "domain"
+        : undefined,
   }));
 }
 

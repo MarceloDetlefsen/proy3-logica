@@ -17,24 +17,20 @@
       </p>
     </header>
     <main>
-      <section
-        class="panel hidden"
-        id="mock-panel"
-        aria-labelledby="mock-title"
-      >
+      <section class="panel" id="mock-panel" aria-labelledby="mock-title">
         <div class="toolbar">
           <div>
-            <h2 id="mock-title">Modo de demostración</h2>
+            <h2 id="mock-title">Ejemplos compartidos</h2>
             <p class="intro">
-              Carga un ejemplo compartido para recorrer la interfaz sin conectar
-              el evaluador Go.
+              Carga un ejemplo completo y ejecútalo con el mock o con el motor
+              Go.
             </p>
           </div>
-          <span class="section-label">Mock activo</span>
+          <span class="section-label" id="example-mode"></span>
         </div>
-        <div class="callout">
+        <div class="callout hidden" id="mock-note">
           Los valores de verdad y las explicaciones de estos ejemplos vienen
-          precalculados. Usa el modo normal para evaluar con el motor Go.
+          precalculados para recorrer la interfaz sin el evaluador Go.
         </div>
         <label class="section-label" for="example-select">Ejemplo</label>
         <div class="inline">

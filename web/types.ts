@@ -47,7 +47,11 @@ export type LogicError = {
   path?: string;
 };
 
-export type WarningKind = "duplicate_tuple" | "extra_env";
+export type WarningKind =
+  | "duplicate_tuple"
+  | "extra_env"
+  | "quantifier_vacuous"
+  | "quantifier_shadowed";
 
 export type Warning = {
   kind: WarningKind;

@@ -1,17 +1,198 @@
 {
   "name": "funcion-sucesor",
   "description": "El sucesor alterna la paridad y la fórmula falla en 2.",
-  "language": {"funcs": {"f": 1}, "preds": {"Even": 1}},
+  "language": {
+    "funcs": {
+      "f": 1
+    },
+    "preds": {
+      "Even": 1
+    }
+  },
   "input": "∀x (Even(x) → ¬Even(f(x)))",
   "interpretation": {
     "domain": ["0", "1", "2"],
-    "funcs": {"f": [
-      {"args": ["0"], "value": "1"},
-      {"args": ["1"], "value": "2"},
-      {"args": ["2"], "value": "0"}
-    ]},
-    "rels": {"Even": [["0"], ["2"]]}
+    "funcs": {
+      "f": [
+        {
+          "args": ["0"],
+          "value": "1"
+        },
+        {
+          "args": ["1"],
+          "value": "2"
+        },
+        {
+          "args": ["2"],
+          "value": "0"
+        }
+      ]
+    },
+    "rels": {
+      "Even": [["0"], ["2"]]
+    }
   },
   "env": {},
-  "expect": {"errorCodes": [], "value": false, "counterexample": {"variable": "x", "value": "2"}}
+  "expect": {
+    "errorCodes": [],
+    "value": false,
+    "counterexample": {
+      "variable": "x",
+      "value": "2"
+    },
+    "explanation": {
+      "holds": false,
+      "rule": "forall",
+      "formula": "∀x (Even(x) → ¬Even(f(x)))",
+      "summary": "Se encontró un contraejemplo en el dominio.",
+      "env": {},
+      "counterexample": {
+        "variable": "x",
+        "value": "2"
+      },
+      "checked": 3,
+      "domainSize": 3,
+      "decisive": [2],
+      "children": [
+        {
+          "holds": true,
+          "rule": "imp",
+          "formula": "(Even(x) → ¬Even(f(x)))",
+          "summary": "El conectivo imp aplicado a sus subfórmulas da true.",
+          "env": {
+            "x": "0"
+          },
+          "decisive": [0, 1],
+          "children": [
+            {
+              "holds": true,
+              "rule": "pred",
+              "formula": "Even(x)",
+              "summary": "La tupla de términos pertenece a la relación.",
+              "env": {
+                "x": "0"
+              },
+              "terms": [
+                {
+                  "term": "x",
+                  "value": "0"
+                }
+              ],
+              "children": []
+            },
+            {
+              "holds": true,
+              "rule": "not",
+              "formula": "¬Even(f(x))",
+              "summary": "La negación invierte el valor de verdad de su subfórmula.",
+              "env": {
+                "x": "0"
+              },
+              "children": [
+                {
+                  "holds": false,
+                  "rule": "pred",
+                  "formula": "Even(f(x))",
+                  "summary": "La tupla de términos no pertenece a la relación.",
+                  "env": {
+                    "x": "0"
+                  },
+                  "terms": [
+                    {
+                      "term": "f(x)",
+                      "value": "1"
+                    }
+                  ],
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "holds": true,
+          "rule": "imp",
+          "formula": "(Even(x) → ¬Even(f(x)))",
+          "summary": "El conectivo imp aplicado a sus subfórmulas da true.",
+          "env": {
+            "x": "1"
+          },
+          "decisive": [0],
+          "children": [
+            {
+              "holds": false,
+              "rule": "pred",
+              "formula": "Even(x)",
+              "summary": "La tupla de términos no pertenece a la relación.",
+              "env": {
+                "x": "1"
+              },
+              "terms": [
+                {
+                  "term": "x",
+                  "value": "1"
+                }
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "holds": false,
+          "rule": "imp",
+          "formula": "(Even(x) → ¬Even(f(x)))",
+          "summary": "El conectivo imp aplicado a sus subfórmulas da false.",
+          "env": {
+            "x": "2"
+          },
+          "decisive": [0, 1],
+          "children": [
+            {
+              "holds": true,
+              "rule": "pred",
+              "formula": "Even(x)",
+              "summary": "La tupla de términos pertenece a la relación.",
+              "env": {
+                "x": "2"
+              },
+              "terms": [
+                {
+                  "term": "x",
+                  "value": "2"
+                }
+              ],
+              "children": []
+            },
+            {
+              "holds": false,
+              "rule": "not",
+              "formula": "¬Even(f(x))",
+              "summary": "La negación invierte el valor de verdad de su subfórmula.",
+              "env": {
+                "x": "2"
+              },
+              "children": [
+                {
+                  "holds": true,
+                  "rule": "pred",
+                  "formula": "Even(f(x))",
+                  "summary": "La tupla de términos pertenece a la relación.",
+                  "env": {
+                    "x": "2"
+                  },
+                  "terms": [
+                    {
+                      "term": "f(x)",
+                      "value": "0"
+                    }
+                  ],
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

@@ -1,9 +1,10 @@
 # Lista de verificación de la interfaz
 
-La aplicación sirve desde `web/` y consume la API Go existente. Para recorrerla
-sin el evaluador, inicia el servidor con `go run .` y abre
-`http://localhost:8080/?mock=1`. El mock usa los valores esperados guardados en
-`testdata/examples/`; la URL sin `mock=1` usa los endpoints reales.
+La aplicación sirve desde `web/` y consume la API Go existente. Inicia el
+servidor con `go run .` y abre `http://localhost:8080/`. El selector de ejemplos
+funciona con la API real y en modo mock (`http://localhost:8080/?mock=1`). Los
+ocho fixtures incluyen árboles de explicación del evaluador semántico para el
+modo mock.
 
 ## Pruebas manuales previas a la entrega
 
@@ -47,10 +48,12 @@ sin el evaluador, inicia el servidor con `go run .` y abre
 27. Evalúa un universal falso y revisa el contraejemplo.
 28. Evalúa un universal verdadero y un existencial falso; confirma el conteo completo del dominio.
 29. Provoca un error en cada sección y confirma que no aparece ningún valor de verdad.
-30. Carga los ocho ejemplos desde `?mock=1`, revisa descripción y resultado esperado, y repite un caso en modo real.
-31. Recorre todas las secciones, botones, selectores y árbol usando solo teclado.
-32. Comprueba nombres accesibles, regiones de estado y lectura de errores con lector de pantalla.
-33. Revisa los temas claro y oscuro a 360 px y en escritorio; confirma que no hay desbordamiento horizontal.
+30. Carga los ocho ejemplos desde `?mock=1`, revisa descripción, resultado y árbol completo.
+31. Carga los ocho ejemplos sin `mock=1` y confirma que el motor real devuelve el mismo valor y explicación.
+32. Recorre todas las secciones, botones, selectores y árbol usando solo teclado.
+33. Comprueba nombres accesibles, regiones de estado y lectura de errores con lector de pantalla.
+34. Revisa los temas claro y oscuro a 360 px y en escritorio; confirma que no hay desbordamiento horizontal.
+35. Prueba un cuantificador vacuo y otro anidado con la misma variable; confirma que aparecen sus avisos.
 
 ## Contrato de la API
 

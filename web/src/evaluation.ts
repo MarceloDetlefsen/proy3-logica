@@ -97,6 +97,18 @@ export function createEvaluationUI(actions) {
     resultHost.append(list);
   }
 
+  function renderWarnings(warnings) {
+    if (!warnings.length) return;
+    const list = document.createElement("ul");
+    list.className = "warning-list";
+    warnings.forEach((warning) => {
+      const item = document.createElement("li");
+      item.textContent = `${warning.path ? `${warning.path}: ` : ""}${warning.message}`;
+      list.append(item);
+    });
+    resultHost.append(list);
+  }
+
   async function evaluate() {
     const status = $("#evaluation-status");
     status.textContent = "Evaluando…";
@@ -110,6 +122,7 @@ export function createEvaluationUI(actions) {
         interpretation: currentInterpretation(),
         env: state.env,
       });
+      renderWarnings(response.warnings);
       if (response.errors.length) {
         status.textContent = "Corrige los errores para evaluar.";
         renderErrors(response.errors);

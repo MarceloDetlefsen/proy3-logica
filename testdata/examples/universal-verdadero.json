@@ -1,13 +1,66 @@
 {
   "name": "universal-verdadero",
   "description": "Todos los elementos del dominio satisfacen P.",
-  "language": {"funcs": {}, "preds": {"P": 1}},
+  "language": {
+    "funcs": {},
+    "preds": {
+      "P": 1
+    }
+  },
   "input": "∀x P(x)",
   "interpretation": {
     "domain": ["a", "b"],
     "funcs": {},
-    "rels": {"P": [["a"], ["b"]]}
+    "rels": {
+      "P": [["a"], ["b"]]
+    }
   },
   "env": {},
-  "expect": {"errorCodes": [], "value": true}
+  "expect": {
+    "errorCodes": [],
+    "value": true,
+    "explanation": {
+      "holds": true,
+      "rule": "forall",
+      "formula": "∀x P(x)",
+      "summary": "La fórmula se cumple para todos los elementos del dominio.",
+      "env": {},
+      "checked": 2,
+      "domainSize": 2,
+      "children": [
+        {
+          "holds": true,
+          "rule": "pred",
+          "formula": "P(x)",
+          "summary": "La tupla de términos pertenece a la relación.",
+          "env": {
+            "x": "a"
+          },
+          "terms": [
+            {
+              "term": "x",
+              "value": "a"
+            }
+          ],
+          "children": []
+        },
+        {
+          "holds": true,
+          "rule": "pred",
+          "formula": "P(x)",
+          "summary": "La tupla de términos pertenece a la relación.",
+          "env": {
+            "x": "b"
+          },
+          "terms": [
+            {
+              "term": "x",
+              "value": "b"
+            }
+          ],
+          "children": []
+        }
+      ]
+    }
+  }
 }

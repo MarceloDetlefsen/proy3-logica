@@ -32,39 +32,41 @@ const demoExamples = [
   "funcion-sucesor",
 ];
 
+const selector = $("#example-select") as HTMLSelectElement;
+const loadButton = $("#load-example") as HTMLButtonElement;
 if (state.mockMode) {
-  const panel = $("#mock-panel");
-  const selector = $("#example-select") as HTMLSelectElement;
-  const loadButton = $("#load-example") as HTMLButtonElement;
-  panel.classList.remove("hidden");
-  for (const name of demoExamples) {
-    const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    selector.append(option);
-  }
-  selector.addEventListener("change", () => {
-    loadButton.disabled = !selector.value;
-  });
-  loadButton.addEventListener("click", async () => {
-    if (!selector.value) return;
-    loadButton.disabled = true;
-    $("#example-description").textContent = "Cargando ejemplo…";
-    try {
-      const response = await fetch(`/examples/${selector.value}.json`);
-      if (!response.ok) throw new Error("No se pudo cargar el ejemplo.");
-      state.example = await response.json();
-      language.load(state.example.language);
-      interpretation.load(state.example.interpretation);
-      formula.load(state.example.input, state.example.env);
-      $("#example-description").textContent = state.example.description;
-    } catch (error) {
-      $("#example-description").textContent = error.message;
-    } finally {
-      loadButton.disabled = false;
-    }
-  });
+  $("#example-mode").textContent = "Mock activo";
+  $("#mock-note").classList.remove("hidden");
+} else {
+  $("#example-mode").textContent = "API Go";
 }
+for (const name of demoExamples) {
+  const option = document.createElement("option");
+  option.value = name;
+  option.textContent = name;
+  selector.append(option);
+}
+selector.addEventListener("change", () => {
+  loadButton.disabled = !selector.value;
+});
+loadButton.addEventListener("click", async () => {
+  if (!selector.value) return;
+  loadButton.disabled = true;
+  $("#example-description").textContent = "Cargando ejemplo…";
+  try {
+    const response = await fetch(`/examples/${selector.value}.json`);
+    if (!response.ok) throw new Error("No se pudo cargar el ejemplo.");
+    state.example = await response.json();
+    language.load(state.example.language);
+    interpretation.load(state.example.interpretation);
+    formula.load(state.example.input, state.example.env);
+    $("#example-description").textContent = state.example.description;
+  } catch (error) {
+    $("#example-description").textContent = error.message;
+  } finally {
+    loadButton.disabled = false;
+  }
+});
 
 $$(".step-link").forEach((link) => {
   link.addEventListener("click", () => {

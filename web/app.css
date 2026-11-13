@@ -150,6 +150,16 @@ main {
   gap: 9px;
   align-items: center;
 }
+.symbol-row.has-error .input {
+  border-color: var(--red);
+  background: var(--red-bg);
+}
+.field-error {
+  grid-column: 1 / -1;
+  color: var(--red);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
 .input,
 select,
 .cell,

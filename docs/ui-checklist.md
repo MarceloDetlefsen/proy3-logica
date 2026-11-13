@@ -54,6 +54,7 @@ modo mock.
 33. Comprueba nombres accesibles, regiones de estado y lectura de errores con lector de pantalla.
 34. Revisa los temas claro y oscuro a 360 px y en escritorio; confirma que no hay desbordamiento horizontal.
 35. Prueba un cuantificador vacuo y otro anidado con la misma variable; confirma que aparecen sus avisos.
+36. Introduce nombre inválido, aridad inválida y duplicados; confirma que cada mensaje y campo marcado queda junto a su fila.
 
 ## Contrato de la API
 

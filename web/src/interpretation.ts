@@ -85,12 +85,38 @@ export function createInterpretationUI(actions) {
       for (const message of items) {
         const item = document.createElement("li");
         item.dataset.path = message.path || "";
-        item.textContent = `${message.path ? `${message.path}: ` : ""}${message.message}`;
+        const friendly = className === "error-list" ? friendlyError(message) : null;
+        item.textContent = friendly || `${message.path ? `${message.path}: ` : ""}${message.message}`;
         if (className === "error-list") markErrorPath(message.path || "");
         list.append(item);
       }
       host.append(list);
     }
+  }
+
+  function friendlyError(error) {
+    if (
+      !["FUNC_NOT_IN_DOMAIN", "REL_NOT_IN_DOMAIN"].includes(error.code) ||
+      !error.message.includes('""')
+    ) {
+      return null;
+    }
+
+    const functionResult = error.path?.match(/^funcs\.([^.[\]]+)\[(\d+)\]\.value$/);
+    if (functionResult) {
+      return `Selecciona un resultado del dominio para la fila ${Number(functionResult[2]) + 1} de la función ${functionResult[1]}.`;
+    }
+    const functionArgument = error.path?.match(
+      /^funcs\.([^.[\]]+)\[(\d+)\]\.args\[(\d+)\]$/,
+    );
+    if (functionArgument) {
+      return `Selecciona un elemento del dominio para el argumento ${Number(functionArgument[3]) + 1}, fila ${Number(functionArgument[2]) + 1}, de la función ${functionArgument[1]}.`;
+    }
+    const relationElement = error.path?.match(/^rels\.([^.[\]]+)\[(\d+)\]\[(\d+)\]$/);
+    if (relationElement) {
+      return `Selecciona un elemento del dominio para la posición ${Number(relationElement[3]) + 1}, tupla ${Number(relationElement[2]) + 1}, de la relación ${relationElement[1]}.`;
+    }
+    return null;
   }
 
   function markErrorPath(path) {

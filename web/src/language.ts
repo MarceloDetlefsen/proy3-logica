@@ -13,13 +13,16 @@ export function createLanguageUI(actions) {
   const predsHost = $("#pred-list");
   let errorSequence = 0;
   let hasInteracted = false;
+  const touchedSymbols = new WeakSet<object>();
 
   function declarations() {
     const toDeclarations = (symbols) =>
-      symbols.map((symbol) => ({
-        name: symbol.name.trim(),
-        arity: Number(symbol.arity),
-      }));
+      symbols
+        .filter((symbol) => symbol.name.trim() || touchedSymbols.has(symbol))
+        .map((symbol) => ({
+          name: symbol.name.trim(),
+          arity: Number(symbol.arity),
+        }));
     return {
       funcs: toDeclarations(state.funcs),
       preds: toDeclarations(state.preds),
@@ -147,12 +150,14 @@ export function createLanguageUI(actions) {
 
       $(".symbol-name", row).addEventListener("input", (event) => {
         hasInteracted = true;
+        touchedSymbols.add(symbol);
         symbols[index].name = (event.currentTarget as HTMLInputElement).value;
         row.dataset.symbolName = symbols[index].name.trim();
         validate();
       });
       $(".symbol-arity", row).addEventListener("input", (event) => {
         hasInteracted = true;
+        touchedSymbols.add(symbol);
         const input = event.currentTarget as HTMLInputElement;
         symbols[index].arity = input.value === "" ? "" : Number(input.value);
         validate();

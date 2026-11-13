@@ -13,22 +13,22 @@ import type { Interpretation } from "../types.js";
 
 export function createInterpretationUI(actions) {
   const tables = $("#tables");
+  let hasInteracted = false;
 
   async function validate() {
-    const language = currentLanguage();
-    if (
-      !state.example &&
-      state.domain.length === 0 &&
-      Object.keys(language.funcs).length === 0 &&
-      Object.keys(language.preds).length === 0
-    ) {
+    if (!hasInteracted && !state.example) {
       state.interpValid = false;
       const status = $("#interpretation-status");
       status.replaceChildren();
       status.className = "status";
+      $$(".has-error", tables).forEach((element) => {
+        element.classList.remove("has-error");
+        element.removeAttribute("aria-invalid");
+      });
       actions.updateEvaluate();
       return;
     }
+    const language = currentLanguage();
     try {
       const result = await request("/api/interpretation/validate", {
         language,
@@ -222,6 +222,7 @@ export function createInterpretationUI(actions) {
         row.innerHTML = `${cells}<td><button class="button danger small remove-row" aria-label="Eliminar tupla">×</button></td>`;
         bindSelects(row, values);
         $(".remove-row", row).addEventListener("click", () => {
+          hasInteracted = true;
           rows.splice(rowIndex, 1);
           renderRows();
           validate();
@@ -232,8 +233,10 @@ export function createInterpretationUI(actions) {
 
     renderRows();
     $(".add-row", section).addEventListener("click", () => {
+      hasInteracted = true;
       rows.push(Array(arity).fill(""));
       renderRows();
+      validate();
     });
   }
 
@@ -252,6 +255,7 @@ export function createInterpretationUI(actions) {
   function bindSelects(row, values) {
     $$<HTMLSelectElement>("select", row).forEach((select) => {
       select.addEventListener("change", () => {
+        hasInteracted = true;
         values[Number(select.dataset.col)] = select.value;
         validate();
       });
@@ -266,6 +270,7 @@ export function createInterpretationUI(actions) {
       chip.className = "chip";
       chip.innerHTML = `${escapeHTML(value)} <button aria-label="Quitar ${escapeHTML(value)}" title="Quitar">×</button>`;
       $("button", chip).addEventListener("click", () => {
+        hasInteracted = true;
         state.domain.splice(index, 1);
         renderDomain();
         renderTables();
@@ -276,9 +281,13 @@ export function createInterpretationUI(actions) {
   }
 
   function addDomain() {
+    hasInteracted = true;
     const field = $("#domain-input") as HTMLInputElement;
     const value = field.value.trim();
-    if (!value) return;
+    if (!value) {
+      validate();
+      return;
+    }
     if (state.domain.includes(value)) {
       announce(
         "interpretation-status",
@@ -295,6 +304,7 @@ export function createInterpretationUI(actions) {
   }
 
   function loadInterpretation(interpretation: Interpretation) {
+    hasInteracted = true;
     state.domain = [...(interpretation.domain || [])];
     state.funcRows = Object.fromEntries(
       Object.entries(interpretation.funcs || {}).map(([name, entries]) => [

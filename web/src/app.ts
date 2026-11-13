@@ -35,10 +35,7 @@ const demoExamples = [
 const selector = $("#example-select") as HTMLSelectElement;
 const loadButton = $("#load-example") as HTMLButtonElement;
 if (state.mockMode) {
-  $("#example-mode").textContent = "Mock activo";
   $("#mock-note").classList.remove("hidden");
-} else {
-  $("#example-mode").textContent = "API Go";
 }
 for (const name of demoExamples) {
   const option = document.createElement("option");

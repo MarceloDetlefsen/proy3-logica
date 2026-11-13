@@ -101,6 +101,16 @@ export function createInterpretationUI(actions) {
     state.relRows = {};
     tables.replaceChildren();
     const language = currentLanguage();
+    const hasSymbols =
+      Object.keys(language.funcs).length > 0 ||
+      Object.keys(language.preds).length > 0;
+    if (!hasSymbols) {
+      const message = document.createElement("p");
+      message.className = "callout";
+      message.textContent =
+        "Las tablas aparecen aquí cuando declares funciones o predicados en el paso Lenguaje.";
+      tables.append(message);
+    }
 
     for (const [name, arity] of Object.entries(language.funcs)) {
       renderFunctionTable(name, arity, previousFunctions[name]);

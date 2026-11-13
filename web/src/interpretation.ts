@@ -15,9 +15,23 @@ export function createInterpretationUI(actions) {
   const tables = $("#tables");
 
   async function validate() {
+    const language = currentLanguage();
+    if (
+      !state.example &&
+      state.domain.length === 0 &&
+      Object.keys(language.funcs).length === 0 &&
+      Object.keys(language.preds).length === 0
+    ) {
+      state.interpValid = false;
+      const status = $("#interpretation-status");
+      status.replaceChildren();
+      status.className = "status";
+      actions.updateEvaluate();
+      return;
+    }
     try {
       const result = await request("/api/interpretation/validate", {
-        language: currentLanguage(),
+        language,
         interpretation: currentInterpretation(),
       });
       state.interpValid = result.errors.length === 0;

@@ -177,8 +177,8 @@ export function createLanguageUI(actions) {
     validate();
   });
 
-  state.funcs = [{ name: "", arity: 1 }];
-  state.preds = [{ name: "", arity: 1 }];
+  state.funcs = [];
+  state.preds = [];
   renderAll();
 
   return {

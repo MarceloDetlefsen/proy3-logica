@@ -3,214 +3,38 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#10231f" />
-    <title>Evaluador semántico | Lógica matemática</title>
+    <meta name="theme-color" content="#080d26" />
+    <title>Parcial 3 · Evaluador semántico</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      try {
+        const savedTheme = localStorage.getItem("parcial3-theme-v1");
+        const themes = ["grafito", "medianoche", "obsidiana", "tinta", "papel"];
+        document.documentElement.dataset.theme = themes.includes(savedTheme) ? savedTheme : "medianoche";
+      } catch (_) { document.documentElement.dataset.theme = "medianoche"; }
+    </script>
     <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/theme.css" />
   </head>
   <body>
-    <header>
-      <div class="eyebrow section-label">MM3032 · Lógica matemática</div>
-      <h1>Evaluador semántico</h1>
-      <p>
-        Define un lenguaje y una interpretación finita, escribe una fórmula y
-        descubre cómo se determina su valor de verdad.
-      </p>
-    </header>
-    <main>
-      <section class="panel" id="mock-panel" aria-labelledby="mock-title">
-        <div class="toolbar">
-          <div>
-            <h2 id="mock-title">Ejemplos compartidos</h2>
-            <p class="intro">
-              Carga un ejemplo completo para llenar los cuatro pasos.
-            </p>
-          </div>
-        </div>
-        <div class="callout hidden" id="mock-note">
-          Los resultados y árboles de estos ejemplos son valores esperados
-          precalculados.
-        </div>
-        <label class="section-label" for="example-select">Ejemplo</label>
-        <div class="inline">
-          <select class="input" id="example-select">
-            <option value="">Selecciona un ejemplo…</option>
-          </select>
-          <button class="button" id="load-example" disabled>Cargar</button>
-        </div>
-        <p id="example-description" class="hint" aria-live="polite"></p>
+    <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div><div class="ambient ambient-c" aria-hidden="true"></div>
+    <header class="topbar"><a class="brand-home" id="brand-home" href="/" aria-label="Ir a la portada de Parcial 3"><svg class="brand-logo" viewBox="0 0 48 48" role="img" aria-hidden="true"><rect x="2.5" y="2.5" width="43" height="43" rx="14"></rect><path class="logo-brackets" d="M13 11H9v26h4M35 11h4v26h-4"></path><path class="logo-model" d="M17 14v20M17 19h15M17 29h15"></path><circle cx="32" cy="19" r="2.5"></circle><circle cx="32" cy="29" r="2.5"></circle></svg></a><div class="brand-copy"><span class="kicker">Parcial 3</span><strong>Evaluador semántico</strong><span class="authors">Marcelo Detlefsen · Julián Divas · Luis Girón</span></div><div class="course">MM3032 · Lógica matemática</div><div class="navbar-actions"><button class="appearance-button" id="open-appearance" type="button" aria-expanded="false" aria-controls="appearance-menu">Apariencia</button><button class="help-button" id="open-tutorial" type="button"><span>?</span> Ayuda</button><div class="appearance-menu hidden" id="appearance-menu" role="dialog" aria-labelledby="appearance-title"><span class="appearance-title" id="appearance-title">Apariencia</span><div class="theme-options" role="radiogroup" aria-label="Elegir apariencia"><label class="theme-option"><input type="radio" name="appearance" value="grafito" /><span class="theme-copy"><strong>Órbita</strong><small>Neutro · suave</small></span><span class="theme-swatches"><i></i><i></i><i></i></span></label><label class="theme-option"><input type="radio" name="appearance" value="medianoche" /><span class="theme-copy"><strong>Boreal</strong><small>Frío · nítido</small></span><span class="theme-swatches"><i></i><i></i><i></i></span></label><label class="theme-option"><input type="radio" name="appearance" value="obsidiana" /><span class="theme-copy"><strong>Savia</strong><small>Natural · sereno</small></span><span class="theme-swatches"><i></i><i></i><i></i></span></label><label class="theme-option"><input type="radio" name="appearance" value="tinta" /><span class="theme-copy"><strong>Ascua</strong><small>Cálido · editorial</small></span><span class="theme-swatches"><i></i><i></i><i></i></span></label><label class="theme-option"><input type="radio" name="appearance" value="papel" /><span class="theme-copy"><strong>Margen</strong><small>Claro · enfocado</small></span><span class="theme-swatches"><i></i><i></i><i></i></span></label></div></div></div></header>
+    <main class="landing" id="landing" tabindex="-1" aria-labelledby="landing-title"><div class="landing-orbit" aria-hidden="true"><span></span><span></span><span></span><i></i></div><div class="landing-copy"><span class="phase-label">LÓGICA MATEMÁTICA</span><h1 id="landing-title">Parcial 3</h1><p class="landing-subtitle">Evaluador semántico</p><p class="landing-description">Construye un lenguaje, interpreta sus símbolos y descubre si una fórmula es verdadera o falsa en un modelo finito.</p><div class="landing-actions"><button class="button primary landing-cta" id="enter-evaluator" type="button">Abrir el evaluador <span>→</span></button></div><div class="landing-context"><div><strong>Modelos finitos</strong><span>Define dominios, funciones y predicados.</span></div><div><strong>Fórmulas lógicas</strong><span>Usa conectivos, variables y cuantificadores.</span></div><div><strong>Explicaciones</strong><span>Consulta testigos, contraejemplos y árboles.</span></div></div><p class="landing-authors">Marcelo Detlefsen · Julián Divas · Luis Girón</p></div></main>
+    <main class="workspace hidden" id="evaluator-workspace">
+      <aside class="sidebar" aria-label="Navegación del evaluador"><div class="sidebar-heading"><span class="section-label">Fases</span><span class="progress-pill" id="progress-pill">0 / 4 válidas</span></div><nav class="steps" aria-label="Fases del evaluador"><a class="step-link active" href="#language" data-phase="language"><b>01</b><span><strong>Lenguaje</strong><small>Declara símbolos</small></span><em>↗</em></a><a class="step-link" href="#interpretation" data-phase="interpretation"><b>02</b><span><strong>Interpretación</strong><small>Construye el modelo</small></span><em>↗</em></a><a class="step-link" href="#formula" data-phase="formula"><b>03</b><span><strong>Fórmula</strong><small>Escribe una pregunta</small></span><em>↗</em></a><a class="step-link" href="#evaluation" data-phase="evaluation"><b>04</b><span><strong>Evaluación</strong><small>Consulta el motor</small></span><em>↗</em></a></nav><div class="sidebar-actions"><button class="learn-launch" id="toggle-learn" type="button"><span class="learn-icon">✦</span><span>Aprender<small>Conceptos del curso</small></span><b>→</b></button><button class="examples-launch" id="toggle-examples" type="button"><span class="book-icon">⌑</span><span>Ejemplos<small>Casos didácticos</small></span><b>→</b></button></div></aside>
+      <section class="stage" aria-label="Área de trabajo">
+        <div class="stage-intro"><div><span class="phase-label" id="phase-label">FASE 01 / LENGUAJE</span><h1 id="stage-title">Lenguaje</h1><p id="stage-description">Declara funciones, constantes y predicados que podrás usar en la fórmula.</p></div></div>
+        <div class="examples-panel hidden" id="examples-panel" aria-labelledby="examples-title"><div class="panel-title-row"><div><span class="phase-label">EJEMPLOS</span><h2 id="examples-title">Carga un caso para estudiarlo</h2><p class="intro">Cada ejemplo completa las cuatro fases con datos de los fixtures del proyecto.</p></div><button class="icon-button" id="close-examples" type="button" aria-label="Cerrar ejemplos">×</button></div><div class="example-grid" id="examples-grid"></div><p id="example-description" class="hint" aria-live="polite"></p><div class="callout hidden" id="mock-note">Modo demostración activo: los resultados usan los datos precalculados del ejemplo.</div></div>
+        <section class="learning-view hidden" id="learning-view" aria-labelledby="learning-title"><div class="learning-header"><div><span class="phase-label">APRENDER</span><h2 id="learning-title">Conceptos para leer tu resultado</h2><p class="intro">Seis lecciones breves conectan la notación del curso con lo que puedes construir aquí.</p></div><button class="button" id="back-to-work">← Volver al evaluador</button></div><nav class="lesson-nav" aria-label="Lecciones"><button class="lesson-link active" data-lesson="symbols">Símbolos</button><button class="lesson-link" data-lesson="quantifiers">Interpretaciones</button><button class="lesson-link" data-lesson="meaning">Evaluar y demostrar</button><button class="lesson-link" data-lesson="peano">Peano</button><button class="lesson-link" data-lesson="undecidability">Límites</button><button class="lesson-link" data-lesson="godel">Gödel</button></nav><article class="lesson-content" id="lesson-content" tabindex="-1"></article></section>
+        <aside class="context-help hidden" id="context-help" aria-live="polite"></aside>
+        <section class="panel phase-panel active" id="language" aria-labelledby="language-title"><h2 class="sr-only" id="language-title">Lenguaje</h2><div class="split-heading"><div><h3>Funciones y constantes</h3><p class="hint">Una constante se declara como una función de aridad 0.</p></div><button class="button small" id="add-func">＋ Agregar función</button></div><div class="symbol-list" id="func-list"></div><div class="split-heading"><div><h3>Predicados</h3><p class="hint">Un predicado de aridad n recibe n elementos.</p></div><button class="button small" id="add-pred">＋ Agregar predicado</button></div><div class="symbol-list" id="pred-list"></div><div class="status" id="language-status" aria-live="polite"></div><div class="phase-nav"><button class="button" data-prev-phase disabled>Anterior</button><button class="button primary" data-next-phase="interpretation">Continuar a Interpretación <span>→</span></button></div></section>
+        <section class="panel phase-panel" id="interpretation" aria-labelledby="interpretation-title"><h2 class="sr-only" id="interpretation-title">Interpretación</h2><div class="domain-card"><div><span class="mini-label">DOMINIO FINITO</span><h3>Elementos disponibles</h3><p class="hint">Agrega cada objeto una vez. Las tablas usarán estos valores.</p></div><div class="domain-entry"><input class="input" id="domain-input" placeholder="Ej. a" autocomplete="off" /><button class="button primary" id="add-domain">Agregar</button></div><div class="chips" id="domain-chips" aria-live="polite"></div></div><div id="tables"></div><div class="status" id="interpretation-status" aria-live="polite"></div><div class="phase-nav"><button class="button" data-prev-phase="language">← Lenguaje</button><button class="button primary" data-next-phase="formula">Continuar a Fórmula <span>→</span></button></div></section>
+        <section class="panel phase-panel" id="formula" aria-labelledby="formula-title"><h2 class="sr-only" id="formula-title">Fórmula</h2><div class="formula-box"><pre id="formula-highlight" class="formula-highlight" aria-hidden="true"></pre><label class="sr-only" for="formula-input">Fórmula lógica</label><textarea id="formula-input" spellcheck="false" placeholder="Ej. ∀x (P(x) → Q(x))"></textarea></div><div class="formula-toolbar"><span class="mini-label">INSERTAR SÍMBOLO</span><div class="symbols" aria-label="Insertar símbolo lógico"><button class="button symbol-button" data-insert="¬" aria-label="Insertar negación">¬</button><button class="button symbol-button" data-insert="∧" aria-label="Insertar conjunción">∧</button><button class="button symbol-button" data-insert="∨" aria-label="Insertar disyunción">∨</button><button class="button symbol-button" data-insert="→" aria-label="Insertar implicación">→</button><button class="button symbol-button" data-insert="↔" aria-label="Insertar bicondicional">↔</button><button class="button symbol-button" data-insert="∀" aria-label="Insertar cuantificador universal">∀</button><button class="button symbol-button" data-insert="∃" aria-label="Insertar cuantificador existencial">∃</button><button class="button symbol-button" data-insert="(" aria-label="Insertar paréntesis de apertura">(</button><button class="button symbol-button" data-insert=")" aria-label="Insertar paréntesis de cierre">)</button></div></div><div class="scope-note"><strong>Alcance de los cuantificadores</strong><span><code>∀x P(x) → Q(x)</code> significa <code>(∀x P(x)) → Q(x)</code>. Para cuantificar toda la implicación: <code>∀x (P(x) → Q(x))</code>.</span></div><div class="status" id="formula-status" aria-live="polite"></div><div id="free-vars" class="free-vars"></div><div class="phase-nav"><button class="button" data-prev-phase="interpretation">← Interpretación</button><button class="button primary" data-next-phase="evaluation">Continuar a Evaluación <span>→</span></button></div></section>
+        <section class="panel phase-panel" id="evaluation" aria-labelledby="evaluation-title"><h2 class="sr-only" id="evaluation-title">Evaluación</h2><div class="evaluation-summary"><div><span class="mini-label">CONDICIONES DE EVALUACIÓN</span><h3 id="evaluation-heading">Revisa lo pendiente antes de consultar el motor</h3></div><div id="evaluation-requirements" class="requirements" aria-live="polite"></div></div><div class="evaluation-cta"><div><span class="mini-label">CONSULTA SEMÁNTICA</span><p>El motor evaluará la fórmula solo cuando no haya errores bloqueantes.</p></div><button class="button primary evaluate-button" id="evaluate" disabled>Evaluar fórmula <span>→</span></button></div><div class="muted" id="evaluation-status" aria-live="polite"></div><div id="result" aria-live="polite"></div><div class="phase-nav"><button class="button" data-prev-phase="formula">← Fórmula</button></div></section>
       </section>
-      <nav class="steps" aria-label="Secciones de trabajo">
-        <a class="step-link active" href="#language"><b>1</b>Lenguaje</a
-        ><a class="step-link" href="#interpretation"><b>2</b>Interpretación</a
-        ><a class="step-link" href="#formula"><b>3</b>Fórmula</a
-        ><a class="step-link" href="#evaluation"><b>4</b>Evaluación</a>
-      </nav>
-      <section class="panel" id="language" aria-labelledby="language-title">
-        <div class="toolbar">
-          <div>
-            <h2 id="language-title">Lenguaje</h2>
-            <p class="intro">
-              Declara las funciones, constantes y predicados que puedes usar en
-              la fórmula.
-            </p>
-          </div>
-          <span class="section-label">Paso 1 de 4</span>
-        </div>
-        <div class="row-head">
-          <h3>Funciones y constantes</h3>
-          <button class="button small" id="add-func">＋ Agregar función</button>
-        </div>
-        <p class="hint">Una constante se declara como una función de aridad 0.</p>
-        <div class="symbol-list" id="func-list"></div>
-        <div class="row-head">
-          <h3>Predicados</h3>
-          <button class="button small" id="add-pred">
-            ＋ Agregar predicado
-          </button>
-        </div>
-        <div class="symbol-list" id="pred-list"></div>
-        <div class="status" id="language-status" aria-live="polite"></div>
-      </section>
-      <section
-        class="panel"
-        id="interpretation"
-        aria-labelledby="interpretation-title"
-      >
-        <div class="toolbar">
-          <div>
-            <h2 id="interpretation-title">Interpretación</h2>
-            <p class="intro">
-              Ingresa un dominio finito y define las tablas para cada símbolo
-              declarado.
-            </p>
-          </div>
-          <span class="section-label">Paso 2 de 4</span>
-        </div>
-        <label class="section-label" for="domain-input"
-          >Elementos del dominio</label
-        >
-        <p class="hint">Agrega un elemento por vez y pulsa Agregar después de cada uno.</p>
-        <div class="domain-entry">
-          <input
-            class="input"
-            id="domain-input"
-            placeholder="Ej. a"
-            autocomplete="off"
-          /><button class="button" id="add-domain">Agregar</button>
-        </div>
-        <div class="chips" id="domain-chips" aria-live="polite"></div>
-        <div id="tables"></div>
-        <div class="status" id="interpretation-status" aria-live="polite"></div>
-      </section>
-      <section class="panel" id="formula" aria-labelledby="formula-title">
-        <div class="toolbar">
-          <div>
-            <h2 id="formula-title">Fórmula</h2>
-            <p class="intro">
-              Escribe con el teclado o inserta símbolos lógicos en el cursor.
-            </p>
-          </div>
-          <span class="section-label">Paso 3 de 4</span>
-        </div>
-        <div class="formula-box">
-          <pre
-            id="formula-highlight"
-            class="formula-highlight"
-            aria-hidden="true"
-          ></pre>
-          <label class="sr-only" for="formula-input">Fórmula lógica</label
-          ><textarea
-            id="formula-input"
-            spellcheck="false"
-            placeholder="Ej. ∀x (P(x) → Q(x))"
-          ></textarea>
-        </div>
-        <div class="symbols" aria-label="Insertar símbolo lógico">
-          <button
-            class="button symbol-button"
-            data-insert="¬"
-            aria-label="Insertar negación"
-          >
-            ¬</button
-          ><button
-            class="button symbol-button"
-            data-insert="∧"
-            aria-label="Insertar conjunción"
-          >
-            ∧</button
-          ><button
-            class="button symbol-button"
-            data-insert="∨"
-            aria-label="Insertar disyunción"
-          >
-            ∨</button
-          ><button
-            class="button symbol-button"
-            data-insert="→"
-            aria-label="Insertar implicación"
-          >
-            →</button
-          ><button
-            class="button symbol-button"
-            data-insert="↔"
-            aria-label="Insertar bicondicional"
-          >
-            ↔</button
-          ><button
-            class="button symbol-button"
-            data-insert="∀"
-            aria-label="Insertar cuantificador universal"
-          >
-            ∀</button
-          ><button
-            class="button symbol-button"
-            data-insert="∃"
-            aria-label="Insertar cuantificador existencial"
-          >
-            ∃</button
-          ><button
-            class="button symbol-button"
-            data-insert="("
-            aria-label="Insertar paréntesis de apertura"
-          >
-            (</button
-          ><button
-            class="button symbol-button"
-            data-insert=")"
-            aria-label="Insertar paréntesis de cierre"
-          >
-            )
-          </button>
-        </div>
-        <div class="status" id="formula-status" aria-live="polite"></div>
-        <div id="free-vars" class="free-vars"></div>
-      </section>
-      <section class="panel" id="evaluation" aria-labelledby="evaluation-title">
-        <div class="toolbar">
-          <div>
-            <h2 id="evaluation-title">Evaluación</h2>
-            <p class="intro">
-              Evalúa la fórmula y revisa las razones que justifican el
-              resultado.
-            </p>
-          </div>
-          <span class="section-label">Paso 4 de 4</span>
-        </div>
-        <div class="callout">
-          Se habilita la evaluación cuando el lenguaje, las tablas, la fórmula y
-          las asignaciones estén completos.
-        </div>
-        <div class="actions" style="margin-top: 16px">
-          <button class="button primary" id="evaluate" disabled>
-            Evaluar fórmula</button
-          ><span class="muted" id="evaluation-status" aria-live="polite"></span>
-        </div>
-        <div id="result" aria-live="polite"></div>
-      </section>
-      <footer>
-        Evaluación de fórmulas de primer orden en interpretaciones finitas.
-      </footer>
+      <aside class="model-rail" aria-label="Resumen del modelo"><div class="rail-heading"><span class="phase-label">RESUMEN</span></div><div class="model-block"><span class="mini-label">DOMINIO</span><div class="domain-preview" id="summary-domain"><span class="empty-summary">Sin elementos</span></div></div><div class="model-block"><span class="mini-label">SÍMBOLOS</span><div class="summary-lines" id="summary-language"><span class="empty-summary">Sin símbolos declarados</span></div></div><div class="model-block"><span class="mini-label">FÓRMULA</span><code class="formula-preview" id="summary-formula">Sin fórmula</code></div><div class="rail-insight"><span class="insight-icon">i</span><div><strong id="summary-status">Resumen incompleto</strong><p id="summary-hint">Completa las fases para consultar el resultado.</p></div></div></aside>
     </main>
+    <div class="tutorial-backdrop hidden" id="tutorial" role="dialog" aria-modal="true" aria-labelledby="tutorial-title"><div class="tutorial-card"><button class="icon-button tutorial-close" id="close-tutorial" type="button" aria-label="Cerrar tutorial">×</button><span class="phase-label" id="tutorial-step-label">TUTORIAL 01 / 06</span><h2 id="tutorial-title">Cómo se conectan las piezas</h2><div class="tutorial-scene" id="tutorial-scene" aria-label="Demostración aislada del ejemplo"><div class="demo-card demo-language"><b>P</b><span>Predicado</span><small>aridad 1</small></div><div class="demo-card demo-domain"><span>Dominio</span><b>{1, 2, 3}</b></div><div class="demo-card demo-relation"><span>P se cumple para</span><b>2 y 3</b></div><div class="demo-formula"><code>∃x P(x)</code><span>Existe al menos un elemento que cumple P</span></div><div class="demo-check"><span>P(1)</span><b>Falso</b><span>P(2)</span><b>Verdadero</b></div><div class="demo-tree"><span>∃x P(x)</span><b>Verdadero</b><small>Testigo: x = 2</small></div></div><p class="tutorial-copy" id="tutorial-copy">Un lenguaje, una interpretación y una fórmula producen una evaluación.</p><div class="tutorial-progress"><span id="tutorial-progress-bar"></span></div><div class="tutorial-actions"><button class="button" id="skip-tutorial" type="button">Omitir</button><div><button class="button" id="tutorial-back" type="button">Atrás</button><button class="button primary" id="tutorial-next" type="button">Siguiente →</button></div></div></div></div>
     <script type="module" src="/build/src/app.js"></script>
   </body>
 </html>

@@ -10,6 +10,17 @@ import {
 export function createEvaluationUI(actions) {
   const resultHost = $("#result");
   const button = $("#evaluate") as HTMLButtonElement;
+  const ruleLabels = {
+    pred: "Predicado",
+    not: "Negación",
+    and: "Conjunción",
+    or: "Disyunción",
+    imp: "Implicación",
+    iff: "Bicondicional",
+    forall: "Universal",
+    exists: "Existencial",
+    mock: "Explicación",
+  };
 
   function updateButton() {
     const hasAssignments = state.analysis?.freeVars.every((variable) =>
@@ -30,7 +41,7 @@ export function createEvaluationUI(actions) {
     const heading = document.createElement("summary");
     heading.innerHTML = `<strong>${escapeHTML(node.formula)}</strong>
       <span class="badge">${node.holds ? "verdadero" : "falso"}</span>
-      <span class="muted">${escapeHTML(node.rule)}</span>`;
+      <span class="muted">${ruleLabels[node.rule] || "Explicación"}</span>`;
     details.append(heading);
 
     appendText(details, node.summary, "summary");

@@ -17,12 +17,12 @@ const appearanceMenu = $("#appearance-menu");
 const appearanceButton = $("#open-appearance") as HTMLButtonElement;
 let appearanceReturnFocus: HTMLElement | null = null;
 function applyTheme(theme: string, persist = true) {
-  const selected = themeNames.includes(theme) ? theme : "grafito";
+  const selected = themeNames.includes(theme) ? theme : "medianoche";
   document.documentElement.dataset.theme = selected;
   $$<HTMLInputElement>("input[name=appearance]").forEach((input) => { input.checked = input.value === selected; });
   if (persist) { try { localStorage.setItem("parcial3-theme-v1", selected); } catch {} }
 }
-applyTheme(document.documentElement.dataset.theme || "grafito", false);
+applyTheme(document.documentElement.dataset.theme || "medianoche", false);
 function closeAppearance() {
   appearanceMenu.classList.add("hidden");
   appearanceButton.setAttribute("aria-expanded", "false");
@@ -98,10 +98,17 @@ const phaseInfo = {
 const phaseOrder = ["language", "interpretation", "formula", "evaluation"];
 let activePhase = "language";
 let transitionToken = 0;
+let learningReturnPhase = "language";
+const learningView = $("#learning-view");
+const lessonContent = $("#lesson-content");
+const contextHelp = $("#context-help");
 function openPhase(id: string, direction = "forward") {
   if (!phaseInfo[id] || id === activePhase && document.querySelector(".phase-panel.active")) return;
   const token = ++transitionToken;
   activePhase = id;
+  learningView.classList.add("hidden");
+  $("#examples-panel").classList.add("hidden");
+  $(".stage-intro").classList.remove("hidden");
   const panel = $("#" + id);
   $$(".phase-panel").forEach((item) => item.classList.remove("active", "enter-forward", "enter-back"));
   panel.classList.add(direction === "back" ? "enter-back" : "enter-forward");
@@ -121,7 +128,7 @@ $$(".step-link").forEach((link) => link.addEventListener("click", (event) => {
   const next = (link as HTMLElement).dataset.phase || "language";
   openPhase(next, phaseOrder.indexOf(next) >= phaseOrder.indexOf(activePhase) ? "forward" : "back");
 }));
-$$("[data-next-phase]").forEach((button) => button.addEventListener("click", () => openPhase((button as HTMLElement).dataset.nextPhase || "language", "forward")));
+$$<HTMLElement>("[data-next-phase]").forEach((button) => button.addEventListener("click", () => { recordHelpAttempt(activePhase); openPhase(button.dataset.nextPhase || "language", "forward"); }));
 $$("[data-prev-phase]").forEach((button) => button.addEventListener("click", () => {
   const previous = (button as HTMLElement).dataset.prevPhase;
   if (previous) openPhase(previous, "back");
@@ -177,6 +184,7 @@ function updateProgress() {
   const stale = $("#result .result")?.classList.contains("stale");
   $("#summary-status").textContent = stale ? "Resultado desactualizado" : complete[3] ? "Resultado disponible" : req.length ? req[0][0] : "Listo para evaluar";
   $("#summary-hint").textContent = stale ? "Vuelve a evaluar para actualizarlo." : complete[3] ? "Abre el árbol para seguir la evidencia." : req.length ? req[0][1] : "El motor puede consultar esta interpretación.";
+  if (!contextHelp.classList.contains("hidden") && !issueForPhase(activePhase)) clearContextHelp();
 }
 function markExampleDirty() { if (state.example && !applyingExample) exampleDirty = true; }
 ["#language","#interpretation","#formula"].forEach((id) => {
@@ -186,6 +194,37 @@ function markExampleDirty() { if (state.example && !applyingExample) exampleDirt
 function markResultStale() { const result = $("#result .result"); if (!result || result.classList.contains("stale")) return; result.classList.add("stale"); $("#evaluation-status").textContent = "Los datos cambiaron. Vuelve a evaluar para actualizar el resultado."; }
 updateSummary();
 const progressTimer = setInterval(updateProgress, 450);
+
+const lessonData: Record<string, string> = {
+  symbols: `<span class="phase-label">FUNDAMENTOS · 01</span><h2>De los símbolos a una fórmula</h2><p class="lesson-lead">El lenguaje nombra objetos y propiedades para que una fórmula pueda preguntar algo sobre ellos.</p><div class="lesson-visual symbol-lesson-visual"><div><strong>término</strong><code>f(a)</code><small>denota un objeto</small></div><div class="lesson-arrow">→</div><div><strong>fórmula</strong><code>P(f(a))</code><small>puede ser verdadera o falsa</small></div></div><p>Una variable representa un elemento; una constante es una función de aridad 0; una función produce un elemento y un predicado recibe una cantidad fija de elementos. Esa cantidad es su aridad.</p><p>La fórmula se evalúa bajo una interpretación y, si tiene variables libres, bajo un entorno. El editor valida que los símbolos y sus aridades coincidan.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>Declara símbolos en Lenguaje y usa nombres compatibles en Fórmula.</span><button class="button small" data-learning-example="universal-verdadero">Probar ejemplo compatible</button></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
+  quantifiers: `<span class="phase-label">FUNDAMENTOS · 02</span><h2>Interpretaciones y cuantificadores</h2><p class="lesson-lead">Una interpretación fija el dominio y decide qué salidas de funciones y qué relaciones son verdaderas.</p><div class="lesson-visual quantifier-visual"><div class="domain-strip"><span>1</span><span class="false-mark">2</span><span class="true-mark">3</span></div><div class="comparison-grid"><div><strong>∃x P(x)</strong><b class="true-text">Verdadero</b><small>Testigo: 2 (también 3)</small></div><div><strong>∀x P(x)</strong><b class="false-text">Falso</b><small>Contraejemplo: 1</small></div></div></div><p>Para una relación unaria, P se cumple para 2 y 3. El parser da a <code>∀x P(x) → Q(x)</code> el alcance <code>(∀x P(x)) → Q(x)</code>; para cuantificar toda la implicación usa <code>∀x (P(x) → Q(x))</code>.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>Interpretación construye los datos; Evaluación muestra el testigo o contraejemplo real.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
+  meaning: `<span class="phase-label">FUNDAMENTOS · 03</span><h2>Evaluar, demostrar y ser válido</h2><p class="lesson-lead">Son relaciones distintas entre una fórmula, una interpretación y un sistema de axiomas.</p><div class="lesson-visual meaning-visual"><div><code>M, s ⊨ φ</code><small>verdad concreta</small></div><div><code>Γ ⊨ φ</code><small>consecuencia semántica</small></div><div><code>Γ ⊢ φ</code><small>derivación formal</small></div><div><code>⊨ φ</code><small>validez universal</small></div></div><p>Corrección —también llamada validez en este contexto— conecta derivaciones correctas con consecuencias semánticas. Completitud afirma, bajo sus hipótesis, que una consecuencia semántica tiene una derivación formal.</p><p>El árbol de esta aplicación justifica una evaluación concreta sobre el modelo finito que construiste. No es una demostración formal de validez universal.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>Lee el árbol junto con la interpretación y la asignación del resultado.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
+  peano: `<span class="phase-label">CONEXIONES · 04</span><h2>Peano: lenguaje y axiomas</h2><p class="lesson-lead">Peano usa un lenguaje para hablar de 0, sucesor, suma, multiplicación e inducción como esquema de axiomas.</p><div class="lesson-visual peano-visual"><div><code>0</code><small>cero</small></div><div><code>S(0)</code><small>un sucesor</small></div><div><code>S(S(0))</code><small>dos sucesores</small></div></div><p><code>S(0) + S(0) = S(S(0))</code> es una ilustración de la lección, no una prueba generada ni verificada por el evaluador.</p><p>El programa trabaja con dominios finitos y no representa toda la aritmética de los naturales. No presentes una estructura finita como modelo de todos los axiomas de Peano.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>La igualdad y la aritmética quedan fuera del contrato; las fórmulas ejecutables usan la sintaxis admitida.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
+  undecidability: `<span class="phase-label">CONEXIONES · 05</span><h2>Por qué el evaluador tiene un alcance concreto</h2><p class="lesson-lead">Evaluar un modelo finito es acotado. Decidir la validez general de primer orden sobre todas las interpretaciones es otro problema.</p><div class="lesson-visual pcp-visual"><div><code>ab / a</code><code>a / ba</code></div><strong>aba = aba</strong><small>coincidencia ilustrativa de PCP</small></div><p>El problema de parada, las máquinas de Turing y PCP ayudan a explicar por qué no existe un procedimiento general para todos los casos de validez. Esta pantalla no implementa un solucionador de PCP ni un simulador completo de Turing.</p><p>Agotar un límite de recursos no significa “falso” ni demuestra por sí solo indecidibilidad.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>El motor consulta el modelo finito y comunica sus límites.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
+  godel: `<span class="phase-label">CONEXIONES · 06</span><h2>Gödel: verdad y demostrabilidad</h2><p class="lesson-lead">La aritmética puede codificar expresiones y pruebas con números para hablar de la demostrabilidad dentro de un sistema.</p><div class="lesson-visual godel-visual"><div><strong>codificar</strong><span>expresiones → números</span></div><div><strong>verificar</strong><span>comprobar una prueba</span></div><div><strong>diagonalizar</strong><span>autorreferencia controlada</span></div></div><p>La incompletitud requiere hipótesis como consistencia en la formulación pertinente, axiomatización efectiva y suficiente expresividad aritmética. La verdad aritmética se entiende en la interpretación estándar de los naturales.</p><p>No contradice la completitud de la lógica de primer orden. Este evaluador finito no decide una oración de Gödel ni verifica el teorema.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>El resultado responde por la interpretación concreta, no por la verdad aritmética estándar.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`
+};
+let suggestionsPaused = false;
+let suggestionsDisabled = false;
+const helpAttempts = new Map<string, number>();
+const helpDismissed = new Set<string>();
+const helpSuggestedAt = new Map<string, number>();
+type HelpIssue = { key: string; phase: string; lesson: string; title: string; detail: string };
+function issueForPhase(phase: string): HelpIssue | null {
+  if (phase === "interpretation" && !state.domain.length) return { key: "interpretation:DOMAIN_EMPTY", phase, lesson: "quantifiers", title: "El dominio todavía está vacío", detail: "Agrega al menos un elemento antes de construir las tablas." };
+  if (phase === "language" && state.languageErrors.length) { const e = state.languageErrors[0]; return { key: `language:${e.code}:${e.path || "root"}`, phase, lesson: "symbols", title: "Revisa el símbolo o su aridad", detail: e.message }; }
+  if (phase === "interpretation" && state.interpErrors.length) { const e = state.interpErrors[0]; return { key: `interpretation:${e.code}:${e.path || "root"}`, phase, lesson: "quantifiers", title: "Revisa la interpretación", detail: e.message }; }
+  if ((phase === "formula" || phase === "evaluation") && state.analysis?.errors?.length) { const e = state.analysis.errors[0]; return { key: `formula:${e.code}:${e.start}`, phase: "formula", lesson: "symbols", title: "Revisa la construcción de la fórmula", detail: e.message }; }
+  if ((phase === "formula" || phase === "evaluation") && !(($("#formula-input") as HTMLTextAreaElement).value.trim())) return { key: "formula:EMPTY", phase: "formula", lesson: "symbols", title: "Falta una fórmula", detail: "Escribe una fórmula antes de continuar hacia la evaluación." };
+  if ((phase === "formula" || phase === "evaluation") && state.analysis?.freeVars?.some((v) => !state.domain.includes(state.env[v]))) { const v = state.analysis.freeVars.find((x) => !state.domain.includes(state.env[x])) || "la variable"; return { key: `formula:ENV_MISSING:${v}`, phase: "formula", lesson: "quantifiers", title: "Falta una asignación para una variable libre", detail: `Asigna ${v} a un elemento del dominio.` }; }
+  return null;
+}
+function clearContextHelp() { contextHelp.replaceChildren(); contextHelp.classList.add("hidden"); }
+function showContextHelp(issue: HelpIssue) { const card = document.createElement("div"); card.className = "context-help-card"; const label = document.createElement("span"); label.className = "mini-label"; label.textContent = "AYUDA CONTEXTUAL"; const title = document.createElement("strong"); title.textContent = issue.title; const detail = document.createElement("p"); detail.textContent = issue.detail; const actions = document.createElement("div"); const open = document.createElement("button"); open.className = "button small primary"; open.textContent = "Ver explicación"; const dismiss = document.createElement("button"); dismiss.className = "button small"; dismiss.textContent = "Ahora no"; const disable = document.createElement("button"); disable.className = "text-button"; disable.textContent = "Desactivar sugerencias automáticas"; actions.append(open, dismiss); card.append(label, title, detail, actions, disable); contextHelp.replaceChildren(card); contextHelp.classList.remove("hidden"); open.addEventListener("click", () => openLearning(issue.lesson, issue.phase)); dismiss.addEventListener("click", () => { helpDismissed.add(issue.key); clearContextHelp(); }); disable.addEventListener("click", () => { suggestionsDisabled = true; clearContextHelp(); }); }
+function recordHelpAttempt(phase: string) { if (suggestionsDisabled || suggestionsPaused) return; const issue = issueForPhase(phase); if (!issue) return; const count = (helpAttempts.get(issue.key) || 0) + 1; helpAttempts.set(issue.key, count); const last = helpSuggestedAt.get(issue.key) || 0; if (count >= 3 && !helpDismissed.has(issue.key) && Date.now() - last >= 120000) { helpSuggestedAt.set(issue.key, Date.now()); showContextHelp(issue); } }
+function renderLesson(id: string) { lessonContent.innerHTML = lessonData[id] || lessonData.symbols; $$(".lesson-link").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.lesson === id)); lessonContent.querySelectorAll("[data-learning-example]").forEach((b) => b.addEventListener("click", () => loadExample((b as HTMLElement).dataset.learningExample || ""))); lessonContent.querySelectorAll(".lesson-back-inline").forEach((b) => b.addEventListener("click", closeLearning)); }
+function openLearning(id = "symbols", returnPhase = activePhase) { learningReturnPhase = returnPhase; suggestionsPaused = true; clearContextHelp(); $$(".phase-panel").forEach((p) => p.classList.remove("active")); examplesPanel.classList.add("hidden"); $(".stage-intro").classList.add("hidden"); learningView.classList.remove("hidden"); renderLesson(id); lessonContent.focus({ preventScroll: true }); }
+function closeLearning() { suggestionsPaused = false; learningView.classList.add("hidden"); $(".stage-intro").classList.remove("hidden"); const phase = learningReturnPhase; activePhase = ""; openPhase(phase, "back"); }
+$("#toggle-learn").addEventListener("click", () => openLearning()); $("#back-to-work").addEventListener("click", closeLearning); $$(".lesson-link").forEach((b) => b.addEventListener("click", () => renderLesson((b as HTMLElement).dataset.lesson || "symbols"))); renderLesson("symbols");
 
 const tutorialSteps = [
   ["Cómo se conectan las piezas","Este es un ejemplo aislado: el modelo real no cambia mientras recorres el tutorial."],
@@ -210,11 +249,13 @@ function renderTutorial() {
   requestAnimationFrame(() => { tutorialScene.className = "tutorial-scene scene-step-" + tutorialIndex; });
 }
 function showTutorial() {
+  suggestionsPaused = true;
   tutorialReturnFocus = document.activeElement as HTMLElement;
   tutorialIndex = 0; tutorial.classList.remove("hidden"); renderTutorial(); ($("#tutorial-next") as HTMLButtonElement).focus();
 }
 function closeTutorial(completed = false) {
   tutorial.classList.add("hidden");
+  suggestionsPaused = false;
   try { localStorage.setItem("parcial3-tutorial-v2", completed ? "done" : "skipped"); } catch {}
   tutorialReturnFocus?.focus();
 }

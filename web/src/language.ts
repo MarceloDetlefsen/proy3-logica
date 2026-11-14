@@ -116,6 +116,7 @@ export function createLanguageUI(actions) {
     try {
       const result = await request("/api/language/validate", declarations());
       state.langValid = result.errors.length === 0;
+      state.languageErrors = result.errors;
       renderErrors(result.errors);
       actions.renderTables();
       actions.validateInterpretation();
@@ -123,6 +124,7 @@ export function createLanguageUI(actions) {
       actions.updateEvaluate();
     } catch (error) {
       state.langValid = false;
+      state.languageErrors = [];
       const host = $("#language-status");
       host.textContent = error.message;
       host.className = "status error";

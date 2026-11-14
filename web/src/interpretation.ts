@@ -36,6 +36,7 @@ export function createInterpretationUI(actions) {
         interpretation: currentInterpretation(),
       });
       state.interpValid = result.errors.length === 0;
+      state.interpErrors = result.errors;
       const visibleErrors = result.errors.filter((error) =>
         isTouchedSymbolPath(error.path || ""),
       );
@@ -50,6 +51,7 @@ export function createInterpretationUI(actions) {
       );
     } catch (error) {
       state.interpValid = false;
+      state.interpErrors = [];
       announce("interpretation-status", error.message, "error");
     }
     actions.updateEvaluate();

@@ -38,7 +38,9 @@ export const state: {
   env: Env;
   analysis: AnalyzeResponse | null;
   langValid: boolean;
+  languageErrors: LogicError[];
   interpValid: boolean;
+  interpErrors: LogicError[];
   formulaValid: boolean;
   mockMode: boolean;
   example: DemoExample | null;
@@ -51,7 +53,9 @@ export const state: {
   env: {},
   analysis: null,
   langValid: false,
+  languageErrors: [],
   interpValid: false,
+  interpErrors: [],
   formulaValid: false,
   mockMode: new URLSearchParams(location.search).get("mock") === "1",
   example: null,

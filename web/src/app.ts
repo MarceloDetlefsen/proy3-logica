@@ -99,6 +99,7 @@ const phaseOrder = ["language", "interpretation", "formula", "evaluation"];
 let activePhase = "language";
 let transitionToken = 0;
 let learningReturnPhase = "language";
+let landingReturnPhase = "language";
 const learningView = $("#learning-view");
 const lessonContent = $("#lesson-content");
 const contextHelp = $("#context-help");
@@ -128,11 +129,22 @@ function openPhase(id: string, direction = "forward") {
 function enterEvaluator(updateUrl = true) {
   landing.classList.add("hidden");
   evaluatorWorkspace.classList.remove("hidden");
-  if (updateUrl && !location.hash) history.replaceState(null, "", "#language");
+  const targetPhase = phaseInfo[location.hash.slice(1)] ? location.hash.slice(1) : landingReturnPhase;
+  if (updateUrl && !location.hash) history.replaceState(null, "", "#" + targetPhase);
   activePhase = "";
-  openPhase(phaseInfo[location.hash.slice(1)] ? location.hash.slice(1) : "language");
+  openPhase(targetPhase);
   try { if (!localStorage.getItem("parcial3-tutorial-v2")) setTimeout(showTutorial, 450); } catch { setTimeout(showTutorial, 450); }
 }
+function showLanding() {
+  landingReturnPhase = phaseInfo[activePhase] ? activePhase : landingReturnPhase;
+  closeAppearance();
+  evaluatorWorkspace.classList.add("hidden");
+  landing.classList.remove("hidden");
+  history.replaceState(null, "", location.pathname + location.search);
+  window.scrollTo({ top: 0, behavior: "instant" });
+  landing.focus({ preventScroll: true });
+}
+$("#brand-home").addEventListener("click", (event) => { event.preventDefault(); showLanding(); });
 $("#enter-evaluator").addEventListener("click", () => enterEvaluator());
 $$(".step-link").forEach((link) => link.addEventListener("click", (event) => {
   event.preventDefault();

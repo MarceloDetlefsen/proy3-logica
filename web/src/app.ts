@@ -102,6 +102,8 @@ let learningReturnPhase = "language";
 const learningView = $("#learning-view");
 const lessonContent = $("#lesson-content");
 const contextHelp = $("#context-help");
+const landing = $("#landing");
+const evaluatorWorkspace = $("#evaluator-workspace");
 function openPhase(id: string, direction = "forward") {
   if (!phaseInfo[id] || id === activePhase && document.querySelector(".phase-panel.active")) return;
   const token = ++transitionToken;
@@ -123,6 +125,15 @@ function openPhase(id: string, direction = "forward") {
     panel.focus({ preventScroll: true });
   });
 }
+function enterEvaluator(updateUrl = true) {
+  landing.classList.add("hidden");
+  evaluatorWorkspace.classList.remove("hidden");
+  if (updateUrl && !location.hash) history.replaceState(null, "", "#language");
+  activePhase = "";
+  openPhase(phaseInfo[location.hash.slice(1)] ? location.hash.slice(1) : "language");
+  try { if (!localStorage.getItem("parcial3-tutorial-v2")) setTimeout(showTutorial, 450); } catch { setTimeout(showTutorial, 450); }
+}
+$("#enter-evaluator").addEventListener("click", () => enterEvaluator());
 $$(".step-link").forEach((link) => link.addEventListener("click", (event) => {
   event.preventDefault();
   const next = (link as HTMLElement).dataset.phase || "language";
@@ -267,5 +278,4 @@ document.addEventListener("keydown", (event) => {
   if (!appearanceMenu.classList.contains("hidden")) { event.preventDefault(); closeAppearance(); return; }
   if (!tutorial.classList.contains("hidden")) { event.preventDefault(); closeTutorial(); }
 });
-try { if (!localStorage.getItem("parcial3-tutorial-v2")) setTimeout(showTutorial, 450); } catch {}
-if (location.hash && phaseInfo[location.hash.slice(1)]) { activePhase = ""; openPhase(location.hash.slice(1)); }
+if (location.hash && phaseInfo[location.hash.slice(1)]) enterEvaluator(false);

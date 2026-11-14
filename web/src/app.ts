@@ -12,6 +12,30 @@ Object.assign(actions, { renderTables: interpretation.renderTables, validateInte
 const language = createLanguageUI(actions);
 interpretation.renderDomain();
 
+const themeNames = ["grafito", "medianoche", "obsidiana", "tinta", "papel"];
+const appearanceMenu = $("#appearance-menu");
+const appearanceButton = $("#open-appearance") as HTMLButtonElement;
+let appearanceReturnFocus: HTMLElement | null = null;
+function applyTheme(theme: string, persist = true) {
+  const selected = themeNames.includes(theme) ? theme : "grafito";
+  document.documentElement.dataset.theme = selected;
+  $$<HTMLInputElement>("input[name=appearance]").forEach((input) => { input.checked = input.value === selected; });
+  if (persist) { try { localStorage.setItem("parcial3-theme-v1", selected); } catch {} }
+}
+applyTheme(document.documentElement.dataset.theme || "grafito", false);
+function closeAppearance() {
+  appearanceMenu.classList.add("hidden");
+  appearanceButton.setAttribute("aria-expanded", "false");
+  appearanceReturnFocus?.focus();
+}
+appearanceButton.addEventListener("click", () => {
+  const opening = appearanceMenu.classList.contains("hidden");
+  if (opening) { appearanceReturnFocus = appearanceButton; appearanceMenu.classList.remove("hidden"); appearanceButton.setAttribute("aria-expanded", "true"); (appearanceMenu.querySelector("input:checked") as HTMLInputElement | null)?.focus(); }
+  else closeAppearance();
+});
+appearanceMenu.addEventListener("change", (event) => applyTheme((event.target as HTMLInputElement).value));
+document.addEventListener("click", (event) => { if (!appearanceMenu.classList.contains("hidden") && !appearanceMenu.parentElement?.contains(event.target as Node)) closeAppearance(); });
+
 const demoExamples = ["universal-verdadero","sin-sucesor","min-existe","densidad-verdadera","densidad-falsa","constante-verdadera","constante-falsa","funcion-sucesor"];
 const exampleMeta = {
   "universal-verdadero":["Universal verdadero","Cuantificadores","Todos los objetos satisfacen P."],
@@ -140,15 +164,19 @@ function updateProgress() {
   const req = requirements();
   const host = $("#evaluation-requirements"); host.replaceChildren();
   if (!req.length) {
-    const ok = document.createElement("p"); ok.className = "requirements-ok"; ok.textContent = "Todo está listo. El resultado todavía no se conoce."; host.append(ok);
+  const currentResult = $("#result .result");
+  const ok = document.createElement("p"); ok.className = "requirements-ok";
+  ok.textContent = currentResult?.classList.contains("stale") ? "Los datos cambiaron. Vuelve a evaluar." : currentResult ? "Resultado vigente." : "Las entradas son válidas. Puedes evaluar.";
+  host.append(ok);
   } else req.forEach(([title, detail, phase]) => {
     const row = document.createElement("div"); row.className = "requirement";
     const copy = document.createElement("span"); copy.innerHTML = "<strong>" + title + "</strong><small>" + detail + "</small>";
     const go = document.createElement("button"); go.className = "button small"; go.textContent = "Resolver"; go.addEventListener("click", () => openPhase(phase, "back"));
     row.append(copy, go); host.append(row);
   });
-  $("#summary-status").textContent = complete[3] ? "Resultado disponible" : req.length ? req[0][0] : "Listo para evaluar";
-  $("#summary-hint").textContent = complete[3] ? "Abre el árbol para seguir la evidencia." : req.length ? req[0][1] : "El motor puede consultar esta interpretación.";
+  const stale = $("#result .result")?.classList.contains("stale");
+  $("#summary-status").textContent = stale ? "Resultado desactualizado" : complete[3] ? "Resultado disponible" : req.length ? req[0][0] : "Listo para evaluar";
+  $("#summary-hint").textContent = stale ? "Vuelve a evaluar para actualizarlo." : complete[3] ? "Abre el árbol para seguir la evidencia." : req.length ? req[0][1] : "El motor puede consultar esta interpretación.";
 }
 function markExampleDirty() { if (state.example && !applyingExample) exampleDirty = true; }
 ["#language","#interpretation","#formula"].forEach((id) => {
@@ -162,7 +190,7 @@ const progressTimer = setInterval(updateProgress, 450);
 const tutorialSteps = [
   ["Cómo se conectan las piezas","Este es un ejemplo aislado: el modelo real no cambia mientras recorres el tutorial."],
   ["Lenguaje: P recibe un elemento","P es un predicado de aridad 1: recibe un elemento del dominio. Todavía no sabemos qué elementos cumplen P."],
-  ["Interpretación: P = {2, 3}","El dominio tiene 1, 2 y 3. La relación P selecciona las tuplas {2} y {3}; por eso P(2) y P(3) son verdaderas."],
+  ["Interpretación: P se cumple para 2 y 3","El dominio tiene 1, 2 y 3. La interpretación hace verdaderas P(2) y P(3), pero no P(1)."],
   ["Fórmula: ∃x P(x)","La fórmula pregunta si existe al menos un elemento que cumple P. Se construye con el cuantificador y el predicado."],
   ["Evaluación: detenerse en el testigo","P(1) es falso. P(2) es verdadero: ya encontramos el testigo x = 2 y no hace falta revisar 3."],
   ["Explicación: resultado y testigo","El resultado es verdadero porque x = 2 hace verdadera a P(x). El árbol conserva esa justificación."]
@@ -190,9 +218,13 @@ function closeTutorial(completed = false) {
   try { localStorage.setItem("parcial3-tutorial-v2", completed ? "done" : "skipped"); } catch {}
   tutorialReturnFocus?.focus();
 }
-$("#open-tutorial").addEventListener("click", showTutorial); $("#open-tutorial-secondary").addEventListener("click", showTutorial); $("#close-tutorial").addEventListener("click", () => closeTutorial()); $("#skip-tutorial").addEventListener("click", () => closeTutorial());
+$("#open-tutorial").addEventListener("click", showTutorial); $("#close-tutorial").addEventListener("click", () => closeTutorial()); $("#skip-tutorial").addEventListener("click", () => closeTutorial());
 $("#tutorial-back").addEventListener("click", () => { tutorialIndex = Math.max(0, tutorialIndex - 1); renderTutorial(); });
 $("#tutorial-next").addEventListener("click", () => { if (tutorialIndex === tutorialSteps.length - 1) closeTutorial(true); else { tutorialIndex++; renderTutorial(); } });
-document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !tutorial.classList.contains("hidden")) { event.preventDefault(); closeTutorial(); } });
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!appearanceMenu.classList.contains("hidden")) { event.preventDefault(); closeAppearance(); return; }
+  if (!tutorial.classList.contains("hidden")) { event.preventDefault(); closeTutorial(); }
+});
 try { if (!localStorage.getItem("parcial3-tutorial-v2")) setTimeout(showTutorial, 450); } catch {}
 if (location.hash && phaseInfo[location.hash.slice(1)]) { activePhase = ""; openPhase(location.hash.slice(1)); }

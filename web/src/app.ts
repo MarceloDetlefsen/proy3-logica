@@ -3,6 +3,7 @@ import { createLanguageUI } from "./language.js";
 import { createInterpretationUI } from "./interpretation.js";
 import { createFormulaUI } from "./formula.js";
 import { createEvaluationUI } from "./evaluation.js";
+import { createHistoryUI } from "./history/view.js";
 
 const actions = {};
 const interpretation = createInterpretationUI(actions);
@@ -101,6 +102,7 @@ let transitionToken = 0;
 let learningReturnPhase = "language";
 let landingReturnPhase = "language";
 const learningView = $("#learning-view");
+const historyView = $("#history-view");
 const lessonContent = $("#lesson-content");
 const contextHelp = $("#context-help");
 const landing = $("#landing");
@@ -110,6 +112,9 @@ function openPhase(id: string, direction = "forward") {
   const token = ++transitionToken;
   activePhase = id;
   learningView.classList.add("hidden");
+  historyView.classList.add("hidden");
+  $("#toggle-learn").classList.remove("active");
+  $("#toggle-history").classList.remove("active");
   $("#examples-panel").classList.add("hidden");
   $(".stage-intro").classList.remove("hidden");
   const panel = $("#" + id);
@@ -245,8 +250,31 @@ function clearContextHelp() { contextHelp.replaceChildren(); contextHelp.classLi
 function showContextHelp(issue: HelpIssue) { const card = document.createElement("div"); card.className = "context-help-card"; const label = document.createElement("span"); label.className = "mini-label"; label.textContent = "AYUDA CONTEXTUAL"; const title = document.createElement("strong"); title.textContent = issue.title; const detail = document.createElement("p"); detail.textContent = issue.detail; const actions = document.createElement("div"); const open = document.createElement("button"); open.className = "button small primary"; open.textContent = "Ver explicación"; const dismiss = document.createElement("button"); dismiss.className = "button small"; dismiss.textContent = "Ahora no"; const disable = document.createElement("button"); disable.className = "text-button"; disable.textContent = "Desactivar sugerencias automáticas"; actions.append(open, dismiss); card.append(label, title, detail, actions, disable); contextHelp.replaceChildren(card); contextHelp.classList.remove("hidden"); open.addEventListener("click", () => openLearning(issue.lesson, issue.phase)); dismiss.addEventListener("click", () => { helpDismissed.add(issue.key); clearContextHelp(); }); disable.addEventListener("click", () => { suggestionsDisabled = true; clearContextHelp(); }); }
 function recordHelpAttempt(phase: string) { if (suggestionsDisabled || suggestionsPaused) return; const issue = issueForPhase(phase); if (!issue) return; const count = (helpAttempts.get(issue.key) || 0) + 1; helpAttempts.set(issue.key, count); const last = helpSuggestedAt.get(issue.key) || 0; if (count >= 3 && !helpDismissed.has(issue.key) && Date.now() - last >= 120000) { helpSuggestedAt.set(issue.key, Date.now()); showContextHelp(issue); } }
 function renderLesson(id: string) { lessonContent.innerHTML = lessonData[id] || lessonData.symbols; lessonContent.querySelectorAll(".lesson-source,.lesson-back-inline").forEach((node) => node.remove()); $$(".lesson-link").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.lesson === id)); requestAnimationFrame(() => { const active = $(".lesson-link.active") as HTMLElement | null; const nav = $(".lesson-nav") as HTMLElement; if (active) { const navBox = nav.getBoundingClientRect(); const activeBox = active.getBoundingClientRect(); nav.scrollLeft += activeBox.left - navBox.left - (nav.clientWidth - active.clientWidth) / 2; } }); lessonContent.querySelectorAll("[data-learning-example]").forEach((b) => b.addEventListener("click", () => loadExample((b as HTMLElement).dataset.learningExample || ""))); }
-function openLearning(id = "symbols", returnPhase = activePhase) { learningReturnPhase = returnPhase; suggestionsPaused = true; clearContextHelp(); $$(".phase-panel").forEach((p) => p.classList.remove("active")); examplesPanel.classList.add("hidden"); $(".stage-intro").classList.add("hidden"); learningView.classList.remove("hidden"); $("#toggle-learn").classList.add("active"); renderLesson(id); lessonContent.focus({ preventScroll: true }); }
+function openLearning(id = "symbols", returnPhase = activePhase) { learningReturnPhase = returnPhase; suggestionsPaused = true; clearContextHelp(); $$(".phase-panel").forEach((p) => p.classList.remove("active")); examplesPanel.classList.add("hidden"); historyView.classList.add("hidden"); $("#toggle-history").classList.remove("active"); $(".stage-intro").classList.add("hidden"); learningView.classList.remove("hidden"); $("#toggle-learn").classList.add("active"); renderLesson(id); lessonContent.focus({ preventScroll: true }); }
 function closeLearning() { suggestionsPaused = false; learningView.classList.add("hidden"); $(".stage-intro").classList.remove("hidden"); $("#toggle-learn").classList.remove("active"); const phase = learningReturnPhase; activePhase = ""; openPhase(phase, "back"); }
+const historyUI = createHistoryUI(() => {
+  suggestionsPaused = false;
+  historyView.classList.add("hidden");
+  $(".stage-intro").classList.remove("hidden");
+  $("#toggle-history").classList.remove("active");
+  const phase = learningReturnPhase;
+  activePhase = "";
+  openPhase(phase, "back");
+});
+function openHistory(chapterId?: string, returnPhase = activePhase || "language") {
+  learningReturnPhase = returnPhase;
+  suggestionsPaused = true;
+  clearContextHelp();
+  $$(".phase-panel").forEach((p) => p.classList.remove("active"));
+  examplesPanel.classList.add("hidden");
+  learningView.classList.add("hidden");
+  $("#toggle-learn").classList.remove("active");
+  $(".stage-intro").classList.add("hidden");
+  historyView.classList.remove("hidden");
+  $("#toggle-history").classList.add("active");
+  historyUI.open(chapterId);
+}
+$("#toggle-history").addEventListener("click", () => openHistory());
 $("#toggle-learn").addEventListener("click", () => openLearning()); $("#back-to-work").addEventListener("click", closeLearning); $$(".lesson-link").forEach((b) => b.addEventListener("click", () => renderLesson((b as HTMLElement).dataset.lesson || "symbols"))); renderLesson("symbols");
 
 const tutorialSteps = [

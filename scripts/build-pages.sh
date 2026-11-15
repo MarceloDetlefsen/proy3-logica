@@ -24,7 +24,8 @@ else
   exit 1
 fi
 
-cp web/index.html web/app.css web/theme.css web/favicon.svg web/liquid-waves.svg "$DIST_DIR/"
+cp web/index.html web/app.css web/theme.css web/history.css web/favicon.svg web/liquid-waves.svg "$DIST_DIR/"
+cp -R web/assets "$DIST_DIR/assets"
 cp -R web/build/* "$DIST_DIR/build/"
 cp testdata/examples/*.json "$DIST_DIR/examples/"
 

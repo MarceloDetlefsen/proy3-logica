@@ -1434,6 +1434,8 @@ a:focus-visible {
   --overlay: rgba(3, 11, 21, 0.76);
   --grid: transparent;
   --panel-blur: 24px;
+  --control-color-scheme: dark;
+  --option-background: #13283f;
 }
 [data-theme="medianoche"] {
   --background: #0a1d32;
@@ -1461,6 +1463,8 @@ a:focus-visible {
   --ambient-b: rgba(138, 201, 255, 0.14);
   --ambient-c: rgba(108, 174, 240, 0.1);
   --overlay: rgba(3, 11, 21, 0.76);
+  --control-color-scheme: dark;
+  --option-background: #13283f;
 }
 [data-theme="grafito"] {
   --background: #11141c;
@@ -1483,6 +1487,8 @@ a:focus-visible {
   --ambient-a: rgba(148, 161, 255, 0.24);
   --ambient-b: rgba(215, 222, 255, 0.16);
   --ambient-c: rgba(172, 142, 255, 0.14);
+  --control-color-scheme: dark;
+  --option-background: #202431;
 }
 [data-theme="obsidiana"] {
   --background: #091512;
@@ -1505,6 +1511,8 @@ a:focus-visible {
   --ambient-a: rgba(58, 173, 134, 0.26);
   --ambient-b: rgba(128, 202, 255, 0.14);
   --ambient-c: rgba(134, 226, 177, 0.14);
+  --control-color-scheme: dark;
+  --option-background: #10251d;
 }
 [data-theme="tinta"] {
   --background: #19140f;
@@ -1527,6 +1535,8 @@ a:focus-visible {
   --ambient-a: rgba(209, 145, 66, 0.25);
   --ambient-b: rgba(247, 194, 109, 0.16);
   --ambient-c: rgba(211, 106, 83, 0.12);
+  --control-color-scheme: dark;
+  --option-background: #302316;
 }
 [data-theme="papel"] {
   --background: #eef3f5;
@@ -1554,6 +1564,8 @@ a:focus-visible {
   --ambient-b: rgba(217, 233, 246, 0.48);
   --ambient-c: rgba(137, 147, 220, 0.2);
   --overlay: rgba(27, 42, 57, 0.44);
+  --control-color-scheme: light;
+  --option-background: #ffffff;
 }
 html,
 body {
@@ -2135,6 +2147,13 @@ a:focus-visible {
   background: var(--surface);
 }
 .model-search-result pre { overflow-x: auto; white-space: pre-wrap; font: 0.85rem/1.6 ui-monospace, monospace; }
+select {
+  color-scheme: var(--control-color-scheme, dark);
+}
+select option {
+  color: var(--text);
+  background-color: var(--option-background, #1b1c22);
+}
 @media (max-width: 600px) {
   .model-search { padding: 16px; }
   .model-search-controls { align-items: stretch; }

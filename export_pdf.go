@@ -40,7 +40,7 @@ func compileEvaluationPDF(ctx context.Context, request logic.EvaluateRequest, re
 	defer cancel()
 	command := exec.CommandContext(compileCtx, compiler,
 		"-interaction=nonstopmode", "-halt-on-error", "-no-shell-escape",
-		"-output-directory", directory, texPath,
+		"-output-directory", ".", "resolucion.tex",
 	)
 	command.Dir = directory
 	command.Stdout = io.Discard

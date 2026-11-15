@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+web/build
+dist
+docs
+*.test
+*.out
+*.pdf
+*.tex

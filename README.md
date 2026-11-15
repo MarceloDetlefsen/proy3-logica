@@ -115,6 +115,7 @@ Más detalle: [docs/despliegue.md](docs/despliegue.md) · [docs/rendimiento.md](
 - `POST /api/interpretation/generate`
 - `POST /api/evaluate`
 - `POST /api/evaluate/export/pdf`
+- `POST /api/models/search`
 
 Más detalle: [docs/api.md](docs/api.md) · [docs/parser.md](docs/parser.md)
 
@@ -252,6 +253,16 @@ Contenedor multi-stage endurecido con TeX Live ([`Dockerfile`](Dockerfile), [`do
 
 Más detalle: [docs/despliegue.md](docs/despliegue.md)
 
+### Búsqueda de modelos y contramodelos
+
+Enumera interpretaciones finitas con dominios de tamaño `1` hasta `N` (`1 <= N <= 100`) y entornos de variables libres para hallar un modelo que satisfaga la fórmula y un contramodelo que la refuta (`SearchModels` en [`internal/logic/model_search.go`](internal/logic/model_search.go), UI en [`web/src/evaluation.ts`](web/src/evaluation.ts), disponible tanto en servidor HTTP como en WebAssembly).
+
+| Parámetro o constante | Qué cambia |
+| --- | --- |
+| `MaxSearchedInterpretations = 2000` | Máximo de interpretaciones candidatas enumeradas |
+| `MaxSearchedEvaluations = 5000` | Máximo de evaluaciones (modelo + entorno) por búsqueda |
+| `maxSearchTableEntries = 128` | Tamaño máximo de tabla permitido durante la enumeración |
+
 ### Aportes creativos adicionales
 
 Incluye igualdad lógica integrada (`=`), modo educativo de 6 lecciones, tutorial de 6 pasos, 5 temas visuales y modo `?mock=1`.
@@ -333,6 +344,8 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 │       ├── language.go                   # Validación de nombres, aridades y palabras reservadas
 │       ├── lexer.go                      # Tokenizador Unicode/ASCII con offsets en runes
 │       ├── logic_bench_test.go           # Benchmarks de parser, evaluador, explicación y generación
+│       ├── model_search.go               # Búsqueda acotada de modelos y contramodelos finitos
+│       ├── model_search_test.go          # Pruebas unitarias de SearchModels
 │       ├── parser.go                     # Parser por descenso recursivo con alcance fuerte
 │       └── tex.go                        # Generación pura en Go del documento LaTeX (.tex)
 ├── main.go                               # Servidor HTTP embebido, /healthz y flag -healthcheck

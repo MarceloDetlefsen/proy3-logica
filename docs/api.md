@@ -87,6 +87,16 @@ curl -s -X POST http://localhost:8080/api/evaluate \
   -d '{"language":{"funcs":{},"preds":{"P":1}},"input":"∀x P(x)","interpretation":{"domain":["a","b"],"funcs":{},"rels":{"P":[["a"],["b"]]}},"env":{}}'
 ```
 
+## `POST /api/models/search`
+
+Enumera interpretaciones finitas con dominios de tamaño `1` hasta `maxDomainSize` ($1 \le N \le 100$) buscando un modelo que satisfaga la fórmula (`satisfying`) y un contramodelo que la falsee (`falsifying`), dentro del presupuesto de `MaxSearchedInterpretations = 2000` y `MaxSearchedEvaluations = 5000`.
+
+```bash
+curl -s -X POST http://localhost:8080/api/models/search \
+  -H "Content-Type: application/json" \
+  -d '{"language":{"funcs":{},"preds":{"P":1}},"input":"∀x P(x)","maxDomainSize":2}'
+```
+
 ## `POST /api/evaluate/export/pdf`
 
 Recibe el mismo cuerpo que `/api/evaluate`, revalida y evalúa, genera el `.tex` y lo compila con `pdflatex`.

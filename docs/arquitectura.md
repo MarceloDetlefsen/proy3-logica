@@ -54,6 +54,7 @@
 - [`analyze.go`](../internal/logic/analyze.go): `AnalyzeFormula` y `freeVariables` calculan variables libres preservando orden de aparición.
 - [`interpretation_validate.go`](../internal/logic/interpretation_validate.go): `ValidateInterpretation` verifica dominio no vacío, completitud de funciones totales, aridades, pertenencia al dominio y relaciones no vacías.
 - [`interpretation_generate.go`](../internal/logic/interpretation_generate.go): `GenerateRandomInterpretation` construye modelos finitos válidos reproducibles mediante `seed`.
+- [`model_search.go`](../internal/logic/model_search.go): `SearchModels` enumera interpretaciones finitas de tamaño `1..N` y entornos para encontrar un modelo y un contramodelo dentro de un presupuesto acotado.
 - [`evaluate.go`](../internal/logic/evaluate.go): `EvaluateFormula` y `evaluationState.eval` implementan la semántica de Tarski, presupuesto de pasos (`MaxEvaluationSteps = 100000`) y árbol de explicación (`maxExplanationNodes = 2000`).
 - [`evaluator_contract.go`](../internal/logic/evaluator_contract.go): Tipos del contrato JSON (`Interpretation`, `Explanation`, `EvaluateRequest`, `EvaluateResponse`) y constantes de límites/códigos de error.
 - [`api_pipeline.go`](../internal/logic/api_pipeline.go): Funciones reutilizables (`ExecuteValidateLanguage`, `ExecuteGenerateInterpretation`) compartidas entre `api.go` y `cmd/wasm/main.go`.
@@ -62,7 +63,7 @@
 
 ### Paquete `cmd/wasm`
 
-- [`cmd/wasm/main.go`](../cmd/wasm/main.go): Compilado con `//go:build js && wasm`; registra `globalThis.proy3Wasm` con los métodos `validateLanguage`, `analyze`, `validateInterpretation`, `generateInterpretation`, `evaluate` y `exportEvaluationTeX`.
+- [`cmd/wasm/main.go`](../cmd/wasm/main.go): Compilado con `//go:build js && wasm`; registra `globalThis.proy3Wasm` con los métodos `validateLanguage`, `analyze`, `validateInterpretation`, `generateInterpretation`, `evaluate`, `searchModels` y `exportEvaluationTeX`.
 
 ### Frontend (`web/`)
 

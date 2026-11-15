@@ -11,6 +11,7 @@
 | 3. Aleatorización reproducible de modelos y fórmulas | Generación por semilla + generador sintáctico de fórmulas | Acelera pruebas y exploración de contraejemplos | `GenerateRandomInterpretation` + `buildRandomFormula` | [`docs/aleatorizacion.md`](aleatorizacion.md) | [`internal/logic/interpretation_generate.go`](../internal/logic/interpretation_generate.go), [`web/src/formula.ts`](../web/src/formula.ts) |
 | 4. Igualdad integrada (`=`) y modo educativo | Predicado lógico sin tabla + 6 lecciones + tutorial | Conecta Peano, Gödel e indecidibilidad con la práctica | `Eq` en AST/parser/evaluador + lecciones y tutorial en UI | [`docs/interfaz.md`](interfaz.md) | [`internal/logic/parser.go`](../internal/logic/parser.go), [`web/index.html`](../web/index.html) |
 | 5. Despliegue dual Docker + WebAssembly en GitHub Pages | Mismo núcleo Go compilado a binario nativo y `js/wasm` | Demo pública sin servidor + contenedor reproducible con TeX | `cmd/wasm/main.go` + `web/src/worker.ts` + `Dockerfile` | [`docs/despliegue.md`](despliegue.md) | [`cmd/wasm/main.go`](../cmd/wasm/main.go), [`web/src/api.ts`](../web/src/api.ts) |
+| 6. Búsqueda finita de modelos y contramodelos | Enumeración acotada de modelos de tamaño $1 \dots N$ | Encuentra ejemplos que satisfacen o refutan una fórmula (validez finita / satisfacibilidad) | `SearchModels` en HTTP y WASM + panel en UI | [`docs/api.md`](api.md) | [`internal/logic/model_search.go`](../internal/logic/model_search.go), [`web/src/evaluation.ts`](../web/src/evaluation.ts) |
 
 ---
 
@@ -63,3 +64,13 @@
 - **Justificación:** Elimina fricción de instalación para la calificación y garantiza portabilidad reproducible.
 - **Limitaciones:** En GitHub Pages la exportación genera `.tex` en lugar de `.pdf`, y el worker tiene un timeout de 10 s por operación.
 - **Demostración en 1 minuto:** Mostrar la demo estática en el navegador descargando `.tex` y compararla con `docker compose up` descargando el `.pdf`.
+
+## 6. Búsqueda finita de modelos y contramodelos
+
+- **Qué es:** Motor de búsqueda que enumera interpretaciones finitas válidas (con dominios de tamaño $1$ hasta $N$) y entornos de variables libres para hallar un modelo que satisfaga la fórmula y un contramodelo que la haga falsa.
+- **Valor que aporta:** Permite comprobar empíricamente si una fórmula es satisfacible o refutable en dominios pequeños sin construir manualmente las tablas.
+- **Cómo se implementó:** `SearchModels` en [`internal/logic/model_search.go`](../internal/logic/model_search.go), expuesto en `POST /api/models/search` ([`api.go`](../api.go)), `proy3Wasm.searchModels` ([`cmd/wasm/main.go`](../cmd/wasm/main.go)) y la sección `#model-search` en [`web/src/evaluation.ts`](../web/src/evaluation.ts).
+- **Cómo se probó:** `TestSearchModelsFindsModelAndCountermodel`, `TestSearchModelsOpenFormulaAndTautology`, `TestSearchModelsValidationAndLimits` en [`internal/logic/model_search_test.go`](../internal/logic/model_search_test.go), `TestSearchModelsAPI` en [`api_test.go`](../api_test.go) y verificación en [`scripts/wasm-smoke.mjs`](../scripts/wasm-smoke.mjs).
+- **Justificación:** Complementa la evaluación puntual permitiendo descubrir modelos y contramodelos automáticamente bajo cotas seguras (`MaxSearchedInterpretations = 2000`, `MaxSearchedEvaluations = 5000`, `maxSearchTableEntries = 128`).
+- **Limitaciones:** La enumeración crece combinatoriamente con la aridad y el tamaño del dominio; si alcanza el presupuesto, marca `limitReached: true` y `complete: false`.
+- **Demostración en 1 minuto:** Escribir `∀x P(x)`, elegir `N = 2` en **Buscar modelo y contramodelo** y mostrar ambos resultados encontrados con sus tablas y asignaciones.

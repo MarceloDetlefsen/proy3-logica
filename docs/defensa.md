@@ -15,6 +15,7 @@
 | Transporte HTTP vs WebAssembly y Web Worker | [`web/src/api.ts`](../web/src/api.ts) y [`web/src/worker.ts`](../web/src/worker.ts) |
 | Exportación LaTeX / PDF | [`internal/logic/tex.go`](../internal/logic/tex.go) → `EvaluationTeX`; [`export_pdf.go`](../export_pdf.go) → `compileEvaluationPDF` |
 | Aleatorización de interpretaciones | [`internal/logic/interpretation_generate.go`](../internal/logic/interpretation_generate.go) → `GenerateRandomInterpretation` |
+| Búsqueda de modelos y contramodelos | [`internal/logic/model_search.go`](../internal/logic/model_search.go) → `SearchModels` |
 | Contenedor y seguridad | [`Dockerfile`](../Dockerfile) y [`docker-compose.yml`](../docker-compose.yml) |
 
 ---

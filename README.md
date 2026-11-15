@@ -98,6 +98,10 @@ Más detalle: [docs/despliegue.md](docs/despliegue.md) · [docs/rendimiento.md](
 | `<->`, `<=>` | Aliases ASCII de bicondicional (`↔`) |
 | `forall`, `exists` | Aliases ASCII de cuantificadores (`∀`, `∃`, sin distinguir mayúsculas) |
 | `Enter` en campo de dominio | Agrega el elemento al dominio finito |
+| **Limpiar todo** (`#clear-language`) | Reinicia lenguaje, interpretación, fórmula y resultados desde cero |
+| Menú lateral (`Aprender`, `Ejemplos`, divisor `Extra` → `Historia`) | Abre vistas auxiliares mutuamente excluyentes; `Historia` activa modo enfoque |
+| Hashes (`#aprender`, `#ejemplos`, `#historia`, `#historia/9`) | Enlaces directos y navegación con botón Atrás del navegador |
+| Tiradores laterales / bordes (`24 px`) en **Historia** | Muestran u ocultan las barras laterales como paneles flotantes superpuestos |
 
 ### Flujo de uso en 4 pasos
 
@@ -362,6 +366,7 @@ Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/c
 │   ├── check-pages.sh                    # Verifica rutas relativas y archivos obligatorios en dist/
 │   ├── docker-smoke.sh                   # Levanta el contenedor y valida /healthz, evaluación y %PDF
 │   ├── history-logic.test.mjs            # Pruebas unitarias de Historia y presets sobre logic.wasm
+│   ├── navigation.test.mjs               # Pruebas unitarias de navegación, hash y modo enfoque
 │   ├── verify-pages.sh                   # Verificación unificada de WASM para ci.yml y pages.yml
 │   └── wasm-smoke.mjs                    # Prueba logic.wasm en Node con fixtures de testdata/
 ├── testdata/
@@ -385,6 +390,7 @@ Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/c
         ├── history/                      # Capítulos, vista, lógica pura y demos de Historia
         ├── interpretation.ts             # Dominio en chips, tablas y modelo aleatorio
         ├── language.ts                   # Alta/baja de funciones y predicados
+        ├── navigation.ts                 # Estado puro de vistas auxiliares, hash y modo enfoque
         ├── state.ts                      # Estado global, debounce y modo ?mock=1
         └── worker.ts                     # Web Worker que carga wasm_exec.js y logic.wasm
 ```

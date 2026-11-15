@@ -65,6 +65,9 @@
 6. **¿Qué pasa si se edita el modelo después de evaluar?** `evaluation.ts` marca el resultado anterior como `stale` (desactualizado) y bloquea la exportación hasta re-evaluar.
 7. **¿Qué es `?mock=1`?** Un modo de demostración en `web/src/state.ts` que responde con los datos precalculados de los fixtures sin requerir backend.
 8. **¿Qué medidas de accesibilidad existen?** Regiones `aria-live="polite"`, navegación por teclado en fases y tutorial, etiquetas `aria-label` en botones de símbolos y gestión de foco al abrir/cerrar diálogos.
+9. **¿Cómo garantizan que Aprender, Ejemplos e Historia no se superpongan?** [`web/src/navigation.ts`](../web/src/navigation.ts) centraliza una sola variable `auxView` (`"aprender" | "ejemplos" | "historia" | null`); abrir cualquiera de ellas cierra automáticamente las demás sin perder el estado del evaluador.
+10. **¿Cómo funciona el enrutamiento por hash en GitHub Pages sin romper rutas relativas?** `parseHash` y `formatHash` usan exclusivamente fragmentos `#aprender`, `#ejemplos`, `#historia` y `#historia/<n>`, sin `/` iniciales ni *query strings*, por lo que funcionan bajo `/proy3-logica/` y con el botón Atrás del navegador.
+11. **¿Cómo es accesible el modo enfoque de Historia por teclado y en pantallas táctiles?** Mientras las barras laterales están ocultas tienen el atributo `inert` para que `Tab` no entre en ellas; pueden abrirse como paneles flotantes mediante los tiradores visibles (`#focus-handle-left`, `#focus-handle-right` con `aria-expanded` y `aria-controls`), el botón `Menú` de la cabecera o acercando el cursor a la zona de borde de `24 px` (`120 ms` al abrir / `300 ms` al cerrar).
 
 ### 5. Extras (PDF, Aleatorización, Igualdad)
 

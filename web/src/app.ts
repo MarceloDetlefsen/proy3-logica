@@ -5,6 +5,16 @@ import { createFormulaUI } from "./formula.js";
 import { createEvaluationUI } from "./evaluation.js";
 import { createHistoryUI } from "./history/view.js";
 import { attachHistoryDemos } from "./history/demos.js";
+import {
+  closeAuxView,
+  createInitialNavState,
+  formatHash,
+  openAuxView,
+  parseHash,
+  setPhase,
+  type NavState,
+  type PhaseId,
+} from "./navigation.js";
 
 const actions = {};
 const interpretation = createInterpretationUI(actions);
@@ -108,9 +118,20 @@ async function loadExample(name: string) {
     applyingExample = false;
     exampleDirty = false;
     $("#example-description").textContent = state.example.description;
-    examplesPanel.classList.add("hidden");
     window.scrollTo(0, 0);
-    openPhase("evaluation", "forward");
+    applyNavState(setPhase(navState, "evaluation"), true, "forward");
+    $("#evaluation-status").textContent =
+      "Ejemplo cargado: " + (exampleMeta[name]?.[0] || name) + ".";
+    const focusEvaluateWhenReady = (attempts = 20) => {
+      evaluation.updateButton();
+      const btn = $("#evaluate") as HTMLButtonElement | null;
+      if (btn && !btn.disabled) {
+        btn.focus();
+      } else if (attempts > 0) {
+        setTimeout(() => focusEvaluateWhenReady(attempts - 1), 80);
+      }
+    };
+    setTimeout(() => focusEvaluateWhenReady(), 80);
   } catch (error) {
     $("#example-description").textContent = error.message;
   } finally {
@@ -142,41 +163,188 @@ const lessonContent = $("#lesson-content");
 const contextHelp = $("#context-help");
 const landing = $("#landing");
 const evaluatorWorkspace = $("#evaluator-workspace");
-function openPhase(id: string, direction = "forward") {
-  if (!phaseInfo[id] || id === activePhase && document.querySelector(".phase-panel.active")) return;
-  const token = ++transitionToken;
-  activePhase = id;
-  learningView.classList.add("hidden");
-  historyView.classList.add("hidden");
-  $("#toggle-learn").classList.remove("active");
-  $("#toggle-history").classList.remove("active");
-  $("#examples-panel").classList.add("hidden");
-  $(".stage-intro").classList.remove("hidden");
-  const panel = $("#" + id);
-  $$(".phase-panel").forEach((item) => item.classList.remove("active", "enter-forward", "enter-back"));
-  panel.classList.add(direction === "back" ? "enter-back" : "enter-forward");
-  panel.classList.add("active");
-  $$(".step-link").forEach((link) => link.classList.toggle("active", (link as HTMLElement).dataset.phase === id));
-  const info = phaseInfo[id];
-  $("#phase-label").textContent = info[0]; $("#stage-title").textContent = info[1]; $("#stage-description").textContent = info[2];
-  history.replaceState(null, "", "#" + id);
-  updateSummary();
-  requestAnimationFrame(() => {
-    if (token !== transitionToken) return;
-    panel.focus({ preventScroll: true });
+let navState: NavState = createInitialNavState("language");
+const sidebarEl = $("#evaluator-sidebar") as HTMLElement & { inert: boolean };
+const modelRailEl = $("#model-rail") as HTMLElement & { inert: boolean };
+const focusHandleLeft = $("#focus-handle-left") as HTMLButtonElement;
+const focusHandleRight = $("#focus-handle-right") as HTMLButtonElement;
+const focusEdgeLeft = $("#focus-edge-left") as HTMLElement;
+const focusEdgeRight = $("#focus-edge-right") as HTMLElement;
+let leftPeek = false;
+let rightPeek = false;
+let leftOpenTimer: number | null = null;
+let leftCloseTimer: number | null = null;
+let rightOpenTimer: number | null = null;
+let rightCloseTimer: number | null = null;
+
+function syncFocusSidebars() {
+  const focus = navState.focusMode;
+  evaluatorWorkspace.classList.toggle("history-focus", focus);
+  focusHandleLeft.classList.toggle("hidden", !focus);
+  focusHandleRight.classList.toggle("hidden", !focus);
+  if (!focus) {
+    leftPeek = false;
+    rightPeek = false;
+    sidebarEl.classList.remove("is-peek");
+    modelRailEl.classList.remove("is-peek");
+    sidebarEl.inert = false;
+    modelRailEl.inert = false;
+    focusHandleLeft.setAttribute("aria-expanded", "false");
+    focusHandleRight.setAttribute("aria-expanded", "false");
+    const menuBtn = document.getElementById("history-toggle-menu");
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
+    return;
+  }
+  const leftOpen = leftPeek || sidebarEl.matches(":focus-within");
+  const rightOpen = rightPeek || modelRailEl.matches(":focus-within");
+  sidebarEl.classList.toggle("is-peek", leftPeek);
+  modelRailEl.classList.toggle("is-peek", rightPeek);
+  sidebarEl.inert = !leftOpen;
+  modelRailEl.inert = !rightOpen;
+  focusHandleLeft.setAttribute("aria-expanded", String(leftOpen));
+  focusHandleRight.setAttribute("aria-expanded", String(rightOpen));
+  const menuBtn = document.getElementById("history-toggle-menu");
+  if (menuBtn) menuBtn.setAttribute("aria-expanded", String(leftOpen));
+}
+
+function setPeek(side: "left" | "right", open: boolean) {
+  if (side === "left") leftPeek = open;
+  else rightPeek = open;
+  syncFocusSidebars();
+}
+
+function wireEdgePeek(
+  side: "left" | "right",
+  edge: HTMLElement,
+  panel: HTMLElement,
+) {
+  const clearTimers = () => {
+    if (side === "left") {
+      if (leftOpenTimer !== null) { clearTimeout(leftOpenTimer); leftOpenTimer = null; }
+      if (leftCloseTimer !== null) { clearTimeout(leftCloseTimer); leftCloseTimer = null; }
+    } else {
+      if (rightOpenTimer !== null) { clearTimeout(rightOpenTimer); rightOpenTimer = null; }
+      if (rightCloseTimer !== null) { clearTimeout(rightCloseTimer); rightCloseTimer = null; }
+    }
+  };
+  const scheduleOpen = () => {
+    if (!navState.focusMode) return;
+    clearTimers();
+    const id = window.setTimeout(() => setPeek(side, true), 120);
+    if (side === "left") leftOpenTimer = id; else rightOpenTimer = id;
+  };
+  const scheduleClose = () => {
+    if (!navState.focusMode) return;
+    clearTimers();
+    const id = window.setTimeout(() => setPeek(side, false), 300);
+    if (side === "left") leftCloseTimer = id; else rightCloseTimer = id;
+  };
+  edge.addEventListener("mouseenter", scheduleOpen);
+  edge.addEventListener("mouseleave", scheduleClose);
+  panel.addEventListener("mouseenter", () => {
+    if (navState.focusMode) clearTimers();
   });
+  panel.addEventListener("mouseleave", scheduleClose);
+  panel.addEventListener("focusout", () => {
+    if (navState.focusMode) requestAnimationFrame(syncFocusSidebars);
+  });
+}
+
+wireEdgePeek("left", focusEdgeLeft, sidebarEl);
+wireEdgePeek("right", focusEdgeRight, modelRailEl);
+
+focusHandleLeft.addEventListener("click", () => {
+  setPeek("left", !leftPeek);
+  if (leftPeek) (sidebarEl.querySelector("a, button") as HTMLElement | null)?.focus();
+});
+focusHandleRight.addEventListener("click", () => {
+  setPeek("right", !rightPeek);
+});
+
+function applyNavState(next: NavState, updateUrl = true, direction = "forward", focusPhasePanel = true) {
+  const prevAux = navState.auxView;
+  const prevPhase = navState.phase;
+  navState = next;
+  activePhase = next.phase;
+
+  const isLearn = next.auxView === "aprender";
+  const isExamples = next.auxView === "ejemplos";
+  const isHistory = next.auxView === "historia";
+
+  suggestionsPaused = next.auxView !== null;
+  if (next.auxView !== null) clearContextHelp();
+
+  learningView.classList.toggle("hidden", !isLearn);
+  examplesPanel.classList.toggle("hidden", !isExamples);
+  historyView.classList.toggle("hidden", !isHistory);
+
+  const learnBtn = $("#toggle-learn");
+  const examplesBtn = $("#toggle-examples");
+  const historyBtn = $("#toggle-history");
+  learnBtn.classList.toggle("active", isLearn);
+  examplesBtn.classList.toggle("active", isExamples);
+  historyBtn.classList.toggle("active", isHistory);
+  learnBtn.setAttribute("aria-current", isLearn ? "page" : "false");
+  examplesBtn.setAttribute("aria-current", isExamples ? "page" : "false");
+  historyBtn.setAttribute("aria-current", isHistory ? "page" : "false");
+
+  if (isLearn || isHistory) {
+    $(".stage-intro").classList.add("hidden");
+    $$(".phase-panel").forEach((p) => p.classList.remove("active", "enter-forward", "enter-back"));
+  } else {
+    $(".stage-intro").classList.remove("hidden");
+    const panel = $("#" + next.phase);
+    const shouldAnimatePhase = prevAux !== null || prevPhase !== next.phase || !panel.classList.contains("active");
+    if (shouldAnimatePhase) {
+      $$(".phase-panel").forEach((item) => item.classList.remove("active", "enter-forward", "enter-back"));
+      panel.classList.add(direction === "back" ? "enter-back" : "enter-forward");
+      panel.classList.add("active");
+    }
+    $$(".step-link").forEach((link) => link.classList.toggle("active", (link as HTMLElement).dataset.phase === next.phase));
+    const info = phaseInfo[next.phase];
+    $("#phase-label").textContent = info[0];
+    $("#stage-title").textContent = info[1];
+    $("#stage-description").textContent = info[2];
+    if (focusPhasePanel && next.auxView === null && shouldAnimatePhase) {
+      const token = ++transitionToken;
+      requestAnimationFrame(() => {
+        if (token !== transitionToken) return;
+        panel.focus({ preventScroll: true });
+      });
+    }
+  }
+
+  if (isExamples) {
+    examplesPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (isHistory) {
+    historyUI.open(next.historyChapter ?? undefined);
+  }
+  syncFocusSidebars();
+  updateSummary();
+
+  if (updateUrl) {
+    const targetHash = formatHash(navState);
+    if (location.hash !== targetHash) {
+      history.replaceState(null, "", targetHash);
+    }
+  }
+}
+
+function openPhase(id: string, direction = "forward") {
+  if (!phaseInfo[id]) return;
+  applyNavState(setPhase(navState, id as PhaseId), true, direction, true);
 }
 function enterEvaluator(updateUrl = true) {
   landing.classList.add("hidden");
   evaluatorWorkspace.classList.remove("hidden");
-  const targetPhase = phaseInfo[location.hash.slice(1)] ? location.hash.slice(1) : landingReturnPhase;
-  if (updateUrl && !location.hash) history.replaceState(null, "", "#" + targetPhase);
-  activePhase = "";
-  openPhase(targetPhase);
+  const parsed = location.hash ? parseHash(location.hash, landingReturnPhase as PhaseId) : createInitialNavState(landingReturnPhase as PhaseId);
+  applyNavState(parsed, updateUrl, "forward", true);
   try { if (!localStorage.getItem("parcial3-tutorial-v2")) setTimeout(showTutorial, 450); } catch { setTimeout(showTutorial, 450); }
 }
 function showLanding() {
-  landingReturnPhase = phaseInfo[activePhase] ? activePhase : landingReturnPhase;
+  landingReturnPhase = navState.phase;
+  applyNavState(closeAuxView(navState), false, "back", false);
   closeAppearance();
   evaluatorWorkspace.classList.add("hidden");
   landing.classList.remove("hidden");
@@ -189,18 +357,29 @@ $("#enter-evaluator").addEventListener("click", () => enterEvaluator());
 $$(".step-link").forEach((link) => link.addEventListener("click", (event) => {
   event.preventDefault();
   const next = (link as HTMLElement).dataset.phase || "language";
-  openPhase(next, phaseOrder.indexOf(next) >= phaseOrder.indexOf(activePhase) ? "forward" : "back");
+  openPhase(next, phaseOrder.indexOf(next) >= phaseOrder.indexOf(navState.phase) ? "forward" : "back");
 }));
-$$<HTMLElement>("[data-next-phase]").forEach((button) => button.addEventListener("click", () => { recordHelpAttempt(activePhase); openPhase(button.dataset.nextPhase || "language", "forward"); }));
+$$<HTMLElement>("[data-next-phase]").forEach((button) => button.addEventListener("click", () => { recordHelpAttempt(navState.phase); openPhase(button.dataset.nextPhase || "language", "forward"); }));
 $$("[data-prev-phase]").forEach((button) => button.addEventListener("click", () => {
   const previous = (button as HTMLElement).dataset.prevPhase;
   if (previous) openPhase(previous, "back");
 }));
 $("#toggle-examples").addEventListener("click", () => {
-  examplesPanel.classList.toggle("hidden");
-  if (!examplesPanel.classList.contains("hidden")) examplesPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (navState.auxView === "ejemplos") {
+    applyNavState(closeAuxView(navState), true, "back", true);
+  } else {
+    applyNavState(openAuxView(navState, "ejemplos"), true, "forward", false);
+  }
 });
-$("#close-examples").addEventListener("click", () => examplesPanel.classList.add("hidden"));
+$("#close-examples").addEventListener("click", () => applyNavState(closeAuxView(navState), true, "back", true));
+window.addEventListener("hashchange", () => {
+  if (evaluatorWorkspace.classList.contains("hidden") && location.hash) {
+    enterEvaluator(false);
+    return;
+  }
+  const parsed = parseHash(location.hash, navState.phase);
+  applyNavState(parsed, false, "forward", false);
+});
 
 function updateSummary() {
   const domain = $("#summary-domain"); domain.replaceChildren();
@@ -285,17 +464,31 @@ function clearContextHelp() { contextHelp.replaceChildren(); contextHelp.classLi
 function showContextHelp(issue: HelpIssue) { const card = document.createElement("div"); card.className = "context-help-card"; const label = document.createElement("span"); label.className = "mini-label"; label.textContent = "AYUDA CONTEXTUAL"; const title = document.createElement("strong"); title.textContent = issue.title; const detail = document.createElement("p"); detail.textContent = issue.detail; const actions = document.createElement("div"); const open = document.createElement("button"); open.className = "button small primary"; open.textContent = "Ver explicación"; const dismiss = document.createElement("button"); dismiss.className = "button small"; dismiss.textContent = "Ahora no"; const disable = document.createElement("button"); disable.className = "text-button"; disable.textContent = "Desactivar sugerencias automáticas"; actions.append(open, dismiss); card.append(label, title, detail, actions, disable); contextHelp.replaceChildren(card); contextHelp.classList.remove("hidden"); open.addEventListener("click", () => openLearning(issue.lesson, issue.phase)); dismiss.addEventListener("click", () => { helpDismissed.add(issue.key); clearContextHelp(); }); disable.addEventListener("click", () => { suggestionsDisabled = true; clearContextHelp(); }); }
 function recordHelpAttempt(phase: string) { if (suggestionsDisabled || suggestionsPaused) return; const issue = issueForPhase(phase); if (!issue) return; const count = (helpAttempts.get(issue.key) || 0) + 1; helpAttempts.set(issue.key, count); const last = helpSuggestedAt.get(issue.key) || 0; if (count >= 3 && !helpDismissed.has(issue.key) && Date.now() - last >= 120000) { helpSuggestedAt.set(issue.key, Date.now()); showContextHelp(issue); } }
 function renderLesson(id: string) { lessonContent.innerHTML = lessonData[id] || lessonData.symbols; lessonContent.querySelectorAll(".lesson-source,.lesson-back-inline").forEach((node) => node.remove()); $$(".lesson-link").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.lesson === id)); requestAnimationFrame(() => { const active = $(".lesson-link.active") as HTMLElement | null; const nav = $(".lesson-nav") as HTMLElement; if (active) { const navBox = nav.getBoundingClientRect(); const activeBox = active.getBoundingClientRect(); nav.scrollLeft += activeBox.left - navBox.left - (nav.clientWidth - active.clientWidth) / 2; } }); lessonContent.querySelectorAll("[data-learning-example]").forEach((b) => b.addEventListener("click", () => loadExample((b as HTMLElement).dataset.learningExample || ""))); }
-function openLearning(id = "symbols", returnPhase = activePhase) { learningReturnPhase = returnPhase; suggestionsPaused = true; clearContextHelp(); $$(".phase-panel").forEach((p) => p.classList.remove("active")); examplesPanel.classList.add("hidden"); historyView.classList.add("hidden"); $("#toggle-history").classList.remove("active"); $(".stage-intro").classList.add("hidden"); learningView.classList.remove("hidden"); $("#toggle-learn").classList.add("active"); renderLesson(id); lessonContent.focus({ preventScroll: true }); }
-function closeLearning() { suggestionsPaused = false; learningView.classList.add("hidden"); $(".stage-intro").classList.remove("hidden"); $("#toggle-learn").classList.remove("active"); const phase = learningReturnPhase; activePhase = ""; openPhase(phase, "back"); }
-const historyUI = createHistoryUI(() => {
-  suggestionsPaused = false;
-  historyView.classList.add("hidden");
-  $(".stage-intro").classList.remove("hidden");
-  $("#toggle-history").classList.remove("active");
-  const phase = learningReturnPhase;
-  activePhase = "";
-  openPhase(phase, "back");
-});
+function openLearning(id = "symbols", returnPhase: string = navState.phase) {
+  learningReturnPhase = returnPhase;
+  applyNavState(openAuxView(navState, "aprender"), true, "forward", false);
+  renderLesson(id);
+  lessonContent.focus({ preventScroll: true });
+}
+function closeLearning() {
+  applyNavState(setPhase(navState, learningReturnPhase as PhaseId), true, "back", true);
+}
+const historyUI = createHistoryUI(
+  () => {
+    applyNavState(setPhase(navState, learningReturnPhase as PhaseId), true, "back", true);
+  },
+  (_chapterId, number1Based) => {
+    if (navState.auxView === "historia") {
+      navState = { ...navState, historyChapter: String(number1Based) };
+      const targetHash = formatHash(navState);
+      if (location.hash !== targetHash) history.replaceState(null, "", targetHash);
+    }
+  },
+  () => {
+    setPeek("left", !leftPeek);
+    if (leftPeek) (sidebarEl.querySelector("a, button") as HTMLElement | null)?.focus();
+  },
+);
 historyUI.setRenderHook((chapter, slots) => {
   attachHistoryDemos(chapter, slots, {
     loadPresetInEvaluator(preset, runModelSearch) {
@@ -306,12 +499,8 @@ historyUI.setRenderHook((chapter, slots) => {
       formula.load(preset.input, preset.env);
       applyingExample = false;
       exampleDirty = false;
-      suggestionsPaused = false;
-      historyView.classList.add("hidden");
-      $("#toggle-history").classList.remove("active");
-      $(".stage-intro").classList.remove("hidden");
       window.scrollTo(0, 0);
-      openPhase("evaluation", "forward");
+      applyNavState(setPhase(navState, "evaluation"), true, "forward", true);
       if (runModelSearch) {
         const limitInput = $("#model-search-limit") as HTMLInputElement | null;
         if (limitInput) limitInput.value = String(preset.searchLimit ?? 2);
@@ -320,21 +509,19 @@ historyUI.setRenderHook((chapter, slots) => {
     }
   });
 });
-function openHistory(chapterId?: string, returnPhase = activePhase || "language") {
+function openHistory(chapterId?: string, returnPhase: string = navState.phase || "language") {
   learningReturnPhase = returnPhase;
-  suggestionsPaused = true;
-  clearContextHelp();
-  $$(".phase-panel").forEach((p) => p.classList.remove("active"));
-  examplesPanel.classList.add("hidden");
-  learningView.classList.add("hidden");
-  $("#toggle-learn").classList.remove("active");
-  $(".stage-intro").classList.add("hidden");
-  historyView.classList.remove("hidden");
-  $("#toggle-history").classList.add("active");
-  historyUI.open(chapterId);
+  applyNavState(openAuxView(navState, "historia", chapterId ?? null), true, "forward", false);
 }
-$("#toggle-history").addEventListener("click", () => openHistory());
-$("#toggle-learn").addEventListener("click", () => openLearning()); $("#back-to-work").addEventListener("click", closeLearning); $$(".lesson-link").forEach((b) => b.addEventListener("click", () => renderLesson((b as HTMLElement).dataset.lesson || "symbols"))); renderLesson("symbols");
+$("#toggle-history").addEventListener("click", () => {
+  if (navState.auxView === "historia") closeLearning();
+  else openHistory();
+});
+$("#toggle-learn").addEventListener("click", () => {
+  if (navState.auxView === "aprender") closeLearning();
+  else openLearning();
+});
+$("#back-to-work").addEventListener("click", closeLearning); $$(".lesson-link").forEach((b) => b.addEventListener("click", () => renderLesson((b as HTMLElement).dataset.lesson || "symbols"))); renderLesson("symbols");
 
 const tutorialSteps = [
   ["Cómo se conectan las piezas","Este es un ejemplo aislado: el modelo real no cambia mientras recorres el tutorial."],
@@ -377,4 +564,4 @@ document.addEventListener("keydown", (event) => {
   if (!appearanceMenu.classList.contains("hidden")) { event.preventDefault(); closeAppearance(); return; }
   if (!tutorial.classList.contains("hidden")) { event.preventDefault(); closeTutorial(); }
 });
-if (location.hash && phaseInfo[location.hash.slice(1)]) enterEvaluator(false);
+if (location.hash) enterEvaluator(false);

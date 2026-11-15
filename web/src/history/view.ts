@@ -30,7 +30,11 @@ function saveVisited(visited: Set<string>) {
   }
 }
 
-export function createHistoryUI(onBack: () => void): HistoryController {
+export function createHistoryUI(
+  onBack: () => void,
+  onChapterChange?: (chapterId: string, number1Based: number) => void,
+  onToggleMenu?: () => void,
+): HistoryController {
   const root = document.getElementById("history-view");
   if (!root) {
     return {
@@ -53,6 +57,7 @@ export function createHistoryUI(onBack: () => void): HistoryController {
       </div>
       <div class="history-header-actions">
         <span class="progress-pill" id="history-progress" aria-live="polite"></span>
+        <button class="button" id="history-toggle-menu" type="button" aria-expanded="false" aria-controls="evaluator-sidebar">Menú</button>
         <button class="button" id="history-back-to-work" type="button">← Volver al evaluador</button>
       </div>
     </div>
@@ -70,6 +75,7 @@ export function createHistoryUI(onBack: () => void): HistoryController {
   const creditsGrid = root.querySelector("#history-credits-grid") as HTMLElement;
 
   root.querySelector("#history-back-to-work")?.addEventListener("click", onBack);
+  root.querySelector("#history-toggle-menu")?.addEventListener("click", () => onToggleMenu?.());
 
   const uniqueCredits = new Map<string, { src: string; caption: string; credit: string }>();
   for (const ch of HISTORY_CHAPTERS) {
@@ -195,6 +201,7 @@ export function createHistoryUI(onBack: () => void): HistoryController {
     if (focusStage) {
       stage.focus({ preventScroll: true });
     }
+    onChapterChange?.(chapter.id, activeIndex + 1);
   }
 
   selectChapter(0, false);
@@ -202,8 +209,13 @@ export function createHistoryUI(onBack: () => void): HistoryController {
   return {
     open(chapterId?: string) {
       if (chapterId) {
-        const idx = HISTORY_CHAPTERS.findIndex((c) => c.id === chapterId);
+        const numeric = Number(chapterId);
+        const idx =
+          Number.isInteger(numeric) && numeric >= 1 && numeric <= HISTORY_CHAPTERS.length
+            ? numeric - 1
+            : HISTORY_CHAPTERS.findIndex((c) => c.id === chapterId);
         if (idx >= 0) selectChapter(idx, false);
+        else selectChapter(activeIndex, false);
       } else {
         selectChapter(activeIndex, false);
       }

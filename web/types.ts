@@ -3,6 +3,7 @@ export type Term =
 
 export type Formula =
   | { k: "pred"; name: string; args: Term[] }
+  | { k: "eq"; left: Term; right: Term }
   | { k: "not"; f: Formula }
   | { k: "bin"; op: "and" | "or" | "imp" | "iff"; l: Formula; r: Formula }
   | { k: "quant"; q: "forall" | "exists"; v: string; f: Formula };
@@ -83,6 +84,7 @@ export type Explanation = {
   holds: boolean;
   rule:
     | "pred"
+    | "eq"
     | "not"
     | "and"
     | "or"

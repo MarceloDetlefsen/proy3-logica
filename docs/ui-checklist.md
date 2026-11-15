@@ -58,6 +58,9 @@ modo mock.
 37. Declara una función binaria sobre un dominio de dos elementos y confirma cuatro tuplas; agrega un elemento, verifica nueve y confirma que se conservan las salidas previas.
 38. Inserta `↔` en medio de una fórmula y confirma que queda en la posición del cursor.
 39. Declara una función cuya tabla supere 10 000 filas; confirma que la UI informa el límite sin intentar renderizarla.
+40. Escribe `x = y` sin declarar predicados y comprueba que solicita asignaciones para ambas variables y evalúa la identidad de sus valores.
+41. Escribe `f(x) = x` y verifica que la explicación muestra el valor denotado por cada término.
+42. En una evaluación con testigo o contraejemplo, avanza y retrocede por el árbol; confirma que los nodos aparecen progresivamente, la rama decisiva queda resaltada y el testigo o contraejemplo permanece visible cuando se alcanza.
 
 ## Contrato de la API
 

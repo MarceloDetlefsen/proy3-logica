@@ -23,6 +23,10 @@ type Pred struct {
 	Name string
 	Args []Term
 }
+type Eq struct {
+	Left  Term
+	Right Term
+}
 type Not struct{ F Formula }
 type Bin struct {
 	Op   BinOp
@@ -35,6 +39,7 @@ type Quant struct {
 }
 
 func (Pred) isFormula()  {}
+func (Eq) isFormula()    {}
 func (Not) isFormula()   {}
 func (Bin) isFormula()   {}
 func (Quant) isFormula() {}
@@ -144,6 +149,38 @@ func (p *Pred) UnmarshalJSON(data []byte) error {
 		}
 	}
 	p.Name, p.Args = wire.Name, args
+	return nil
+}
+
+func (e Eq) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		K     string `json:"k"`
+		Left  Term   `json:"left"`
+		Right Term   `json:"right"`
+	}{"eq", e.Left, e.Right})
+}
+
+func (e *Eq) UnmarshalJSON(data []byte) error {
+	var wire struct {
+		K     string          `json:"k"`
+		Left  json.RawMessage `json:"left"`
+		Right json.RawMessage `json:"right"`
+	}
+	if err := json.Unmarshal(data, &wire); err != nil {
+		return err
+	}
+	if wire.K != "eq" {
+		return fmt.Errorf("logic: expected formula kind eq, got %q", wire.K)
+	}
+	left, err := UnmarshalTerm(wire.Left)
+	if err != nil {
+		return err
+	}
+	right, err := UnmarshalTerm(wire.Right)
+	if err != nil {
+		return err
+	}
+	e.Left, e.Right = left, right
 	return nil
 }
 
@@ -262,6 +299,9 @@ func UnmarshalFormula(data []byte) (Formula, error) {
 	switch kind {
 	case "pred":
 		var value Pred
+		return value, json.Unmarshal(data, &value)
+	case "eq":
+		var value Eq
 		return value, json.Unmarshal(data, &value)
 	case "not":
 		var value Not

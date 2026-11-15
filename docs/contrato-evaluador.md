@@ -70,10 +70,14 @@ Una `Explanation` representa la evaluación de una subfórmula:
 }
 ```
 
-`rule` solo puede ser `pred`, `not`, `and`, `or`, `imp`, `iff`, `forall` o
-`exists`. `formula` es la subfórmula impresa con `FormulaString` y `summary`
+`rule` puede ser `pred`, `eq`, `not`, `and`, `or`, `imp`, `iff`, `forall` o
+`exists`. `eq` identifica una igualdad lógica y `terms` muestra los valores
+denotados por sus dos términos. `formula` es la subfórmula impresa con `FormulaString` y `summary`
 es una explicación de una línea en español. `env` contiene únicamente las
 variables libres de esa subfórmula.
+
+El nodo de igualdad del AST usa `k: "eq"` con términos `left` y `right`, por
+ejemplo `{"k":"eq","left":{"k":"var","name":"x"},"right":{"k":"app","fn":"c","args":[]}}`.
 
 Los campos opcionales son:
 
@@ -199,7 +203,8 @@ las etapas anteriores no produzcan errores; en particular, nunca debe generar
 `result` si `errors` no está vacío.
 
 La evaluación usa semántica de Tarski sobre el dominio finito: interpreta
-términos con las tablas de funciones, predicados por pertenencia de tuplas,
+términos con las tablas de funciones, la igualdad compara la identidad de los
+elementos denotados, predicados por pertenencia de tuplas,
 conectivos con sus tablas de verdad y cuantificadores recorriendo el dominio.
 Cada cuantificador trabaja sobre una copia del entorno, por lo que una variable
 ligada sombrea correctamente una asignación externa con el mismo nombre. El

@@ -44,6 +44,9 @@ func collectFormulaVariables(formula Formula, bound map[string]bool, variables *
 		for _, term := range node.Args {
 			collectTermVariables(term, bound, variables, seen)
 		}
+	case Eq:
+		collectTermVariables(node.Left, bound, variables, seen)
+		collectTermVariables(node.Right, bound, variables, seen)
 	case Not:
 		collectFormulaVariables(node.F, bound, variables, seen)
 	case Bin:

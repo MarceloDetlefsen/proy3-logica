@@ -6,6 +6,7 @@ import {
   currentLanguage,
   currentInterpretation,
 } from "./state.js";
+import { getTransport, isWasmMode } from "./api.js";
 
 export function createEvaluationUI(actions) {
   const resultHost = $("#result");
@@ -204,43 +205,39 @@ export function createEvaluationUI(actions) {
         <span class="badge">${escapeHTML(result.formula)}</span></div>`;
       const exportControls = document.createElement("div");
       exportControls.className = "pdf-export-controls";
+      const wasmMode = isWasmMode();
       const exportButton = document.createElement("button");
       exportButton.type = "button";
       exportButton.id = "export-pdf";
       exportButton.className = "button small";
-      exportButton.textContent = "Exportar resolución a PDF";
+      exportButton.textContent = wasmMode ? "Descargar resolución (.tex)" : "Exportar resolución a PDF";
       const exportStatus = document.createElement("span");
       exportStatus.className = "muted";
       exportStatus.setAttribute("aria-live", "polite");
+      if (wasmMode) {
+        exportStatus.innerHTML = 'El PDF requiere el servidor: usa la <a href="https://github.com/MarceloDetlefsen/proy3-logica#compilaci%C3%B3n-y-ejecuci%C3%B3n" target="_blank" rel="noopener noreferrer">imagen Docker</a>.';
+      }
       exportButton.addEventListener("click", async () => {
         if (output.classList.contains("stale")) {
           exportStatus.textContent = "El resultado está desactualizado. Vuelve a evaluar antes de exportar.";
           return;
         }
         exportButton.disabled = true;
-        exportStatus.textContent = "Preparando el PDF con LaTeX…";
+        exportStatus.textContent = wasmMode ? "Generando archivo LaTeX (.tex)…" : "Preparando el PDF con LaTeX…";
         try {
-          const response = await fetch("/api/evaluate/export/pdf", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              language: currentLanguage(),
-              input: ($("#formula-input") as HTMLTextAreaElement).value,
-              interpretation: currentInterpretation(),
-              env: state.env,
-            }),
+          const exported = await getTransport().exportDocument({
+            language: currentLanguage(),
+            input: ($("#formula-input") as HTMLTextAreaElement).value,
+            interpretation: currentInterpretation(),
+            env: state.env,
           });
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || "No se pudo generar el PDF.");
-          }
-          const pdfURL = URL.createObjectURL(await response.blob());
+          const fileURL = URL.createObjectURL(exported.blob);
           const link = document.createElement("a");
-          link.href = pdfURL;
-          link.download = "resolucion-semantica.pdf";
+          link.href = fileURL;
+          link.download = exported.filename;
           link.click();
-          URL.revokeObjectURL(pdfURL);
-          exportStatus.textContent = "PDF descargado.";
+          URL.revokeObjectURL(fileURL);
+          exportStatus.textContent = exported.kind === "tex" ? "Archivo .tex descargado." : "PDF descargado.";
         } catch (error) {
           exportStatus.textContent = error.message;
         } finally {

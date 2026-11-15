@@ -214,7 +214,7 @@ function markExampleDirty() { if (state.example && !applyingExample) exampleDirt
   ["input", "change", "click"].forEach((eventName) => $(id).addEventListener(eventName, markExampleDirty, true));
   $(id).addEventListener("input", () => { markResultStale(); updateSummary(); }, true);
 });
-function markResultStale() { const result = $("#result .result"); if (!result || result.classList.contains("stale")) return; result.classList.add("stale"); $("#evaluation-status").textContent = "Los datos cambiaron. Vuelve a evaluar para actualizar el resultado."; }
+function markResultStale() { const result = $("#result .result"); if (!result || result.classList.contains("stale")) return; result.classList.add("stale"); const exportButton = $("#export-pdf") as HTMLButtonElement | null; if (exportButton) exportButton.disabled = true; $("#evaluation-status").textContent = "Los datos cambiaron. Vuelve a evaluar para actualizar el resultado."; }
 updateSummary();
 const progressTimer = setInterval(updateProgress, 450);
 

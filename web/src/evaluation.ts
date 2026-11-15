@@ -202,6 +202,53 @@ export function createEvaluationUI(actions) {
       output.className = `result ${result.value ? "truth" : "falsity"}`;
       output.innerHTML = `<div class="result-head"><h3>${result.value ? "Verdadero" : "Falso"}</h3>
         <span class="badge">${escapeHTML(result.formula)}</span></div>`;
+      const exportControls = document.createElement("div");
+      exportControls.className = "pdf-export-controls";
+      const exportButton = document.createElement("button");
+      exportButton.type = "button";
+      exportButton.id = "export-pdf";
+      exportButton.className = "button small";
+      exportButton.textContent = "Exportar resolución a PDF";
+      const exportStatus = document.createElement("span");
+      exportStatus.className = "muted";
+      exportStatus.setAttribute("aria-live", "polite");
+      exportButton.addEventListener("click", async () => {
+        if (output.classList.contains("stale")) {
+          exportStatus.textContent = "El resultado está desactualizado. Vuelve a evaluar antes de exportar.";
+          return;
+        }
+        exportButton.disabled = true;
+        exportStatus.textContent = "Preparando el PDF con LaTeX…";
+        try {
+          const response = await fetch("/api/evaluate/export/pdf", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              language: currentLanguage(),
+              input: ($("#formula-input") as HTMLTextAreaElement).value,
+              interpretation: currentInterpretation(),
+              env: state.env,
+            }),
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "No se pudo generar el PDF.");
+          }
+          const pdfURL = URL.createObjectURL(await response.blob());
+          const link = document.createElement("a");
+          link.href = pdfURL;
+          link.download = "resolucion-semantica.pdf";
+          link.click();
+          URL.revokeObjectURL(pdfURL);
+          exportStatus.textContent = "PDF descargado.";
+        } catch (error) {
+          exportStatus.textContent = error.message;
+        } finally {
+          exportButton.disabled = output.classList.contains("stale");
+        }
+      });
+      exportControls.append(exportButton, exportStatus);
+      output.append(exportControls);
       evaluationSteps = [];
       const explanationTree = renderExplanation(result.explanation);
       output.append(createStepControls(), explanationTree);

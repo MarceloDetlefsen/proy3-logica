@@ -95,6 +95,40 @@ func evaluateHandler(writer http.ResponseWriter, request *http.Request) {
 	writeJSON(writer, http.StatusOK, logic.EvaluateFormula(body))
 }
 
+func exportEvaluationPDFHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")
+		return
+	}
+	request.Body = http.MaxBytesReader(writer, request.Body, 2<<20)
+	var body logic.EvaluateRequest
+	if err := decodeJSON(request, &body); err != nil {
+		writeAPIError(writer, http.StatusBadRequest, "El cuerpo JSON no es válido o excede el límite de 2 MiB.")
+		return
+	}
+	response := logic.EvaluateFormula(body)
+	if len(response.Errors) > 0 {
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusUnprocessableEntity)
+		_ = json.NewEncoder(writer).Encode(response)
+		return
+	}
+	pdf, err := compileEvaluationPDF(request.Context(), body, *response.Result, response.Warnings)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, errLatexUnavailable) {
+			status = http.StatusServiceUnavailable
+		}
+		writeAPIError(writer, status, err.Error())
+		return
+	}
+	writer.Header().Set("Content-Type", "application/pdf")
+	writer.Header().Set("Content-Disposition", `attachment; filename="resolucion-semantica.pdf"`)
+	writer.Header().Set("Cache-Control", "no-store")
+	writer.WriteHeader(http.StatusOK)
+	_, _ = writer.Write(pdf)
+}
+
 func decodeJSON(request *http.Request, destination any) error {
 	decoder := json.NewDecoder(request.Body)
 	decoder.DisallowUnknownFields()

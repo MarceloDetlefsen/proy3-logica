@@ -122,3 +122,4 @@ body:before,body:after { display:none; }
 .tree details.decisive-branch > summary::after { content:"Rama decisiva"; display:inline-block; margin-left:10px; padding:3px 7px; border-radius:999px; background:color-mix(in srgb,var(--success) 16%,transparent); color:var(--success); font-size:.65rem; font-weight:700; }
 .decisive-binding { width:fit-content; max-width:100%; margin:10px 0; padding:9px 12px; border:1px solid color-mix(in srgb,var(--success) 48%,transparent); border-radius:10px; background:color-mix(in srgb,var(--success) 13%,transparent); color:var(--success); font-weight:700; }
 @media(max-width:700px) { .evaluation-steps { flex-wrap:wrap; } .evaluation-step-status { order:-1; flex-basis:100%; text-align:left; } }
+.pdf-export-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0}.pdf-export-controls .muted{font-size:.78rem}

@@ -116,6 +116,18 @@ export type InterpretationValidateResponse = {
   warnings: Warning[];
 };
 
+export type InterpretationGenerateRequest = {
+  language: Language;
+  domainSize?: number;
+  seed?: number;
+};
+
+export type InterpretationGenerateResponse = {
+  interpretation?: Interpretation;
+  seed: number;
+  errors: LogicError[];
+};
+
 export type EvaluateRequest = {
   language: Language;
   input: string;

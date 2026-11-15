@@ -88,6 +88,21 @@ elementos y cada tabla de función o relación hasta 10 000 entradas. La
 completitud de una función se comprueba contra todas las tuplas de `D^n`; si
 faltan tuplas, el error informa cuántas faltan y muestra hasta cinco ejemplos.
 
+### `POST /api/interpretation/generate`
+
+Genera una interpretación aleatoria válida para el lenguaje:
+
+```json
+{"language":{"funcs":{"c":0,"f":1},"preds":{"P":1}},"domainSize":3,"seed":42}
+```
+
+`domainSize` es opcional (por defecto 3; rango permitido 1–100). `seed` también
+es opcional: si se omite, se elige al azar y se devuelve en la respuesta para
+reproducir la interpretación. Las funciones reciben una entrada por cada
+tupla de `D^n`, las constantes una entrada con `args: []`, y las relaciones
+contienen al menos una tupla. Si una tabla total excede el máximo de 10 000
+entradas, la respuesta informa el límite en `errors`.
+
 ### `POST /api/evaluate`
 
 Evalúa una fórmula en una interpretación finita. Recibe `language`, `input`,

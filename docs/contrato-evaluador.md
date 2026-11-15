@@ -121,6 +121,13 @@ cuando faltan filas, `FUNC_INCOMPLETE` informa la cantidad y hasta cinco
 tuplas faltantes de ejemplo. Las rutas usan índices desde cero, por ejemplo
 `domain[1]`, `funcs.f[2].args[0]` y `rels.P[1][0]`.
 
+El endpoint `POST /api/interpretation/generate` recibe un lenguaje y, de forma
+opcional, `domainSize` (por defecto 3, máximo 100) y `seed`. Genera funciones
+totales, constantes con una única entrada sin argumentos y relaciones no
+vacías. Devuelve la semilla usada para que la misma interpretación pueda
+reproducirse. Las tablas de función que excedan 10 000 filas devuelven
+`LIMIT_EXCEEDED` en lugar de una interpretación parcial.
+
 ### Evaluar una fórmula
 
 `EvaluateRequest` contiene el lenguaje, el texto de entrada, la interpretación
@@ -163,6 +170,7 @@ nula cuando existe `result`.
 | Código | Significado |
 | --- | --- |
 | `DOMAIN_EMPTY` | el dominio no contiene elementos |
+| `DOMAIN_SIZE_INVALID` | el tamaño solicitado al generador no es positivo |
 | `DOMAIN_INVALID_ELEMENT` | elemento del dominio con formato inválido |
 | `DOMAIN_DUPLICATE` | elemento repetido en el dominio |
 | `FUNC_MISSING` | falta una función requerida por el lenguaje |

@@ -51,6 +51,12 @@ type InterpretationValidateResponse struct {
 	Warnings []Warning    `json:"warnings"`
 }
 
+type InterpretationGenerateResponse struct {
+	Interpretation *Interpretation `json:"interpretation,omitempty"`
+	Seed           int64           `json:"seed"`
+	Errors         []LogicError    `json:"errors"`
+}
+
 type EvaluateRequest struct {
 	Language       Language       `json:"language"`
 	Input          string         `json:"input"`
@@ -73,6 +79,7 @@ type EvaluateResponse struct {
 
 const (
 	DOMAIN_EMPTY           = "DOMAIN_EMPTY"
+	DOMAIN_SIZE_INVALID    = "DOMAIN_SIZE_INVALID"
 	DOMAIN_INVALID_ELEMENT = "DOMAIN_INVALID_ELEMENT"
 	DOMAIN_DUPLICATE       = "DOMAIN_DUPLICATE"
 	FUNC_MISSING           = "FUNC_MISSING"
@@ -103,6 +110,7 @@ const (
 	MaxDomainSize         = 100
 	MaxTableEntries       = 10000
 	MaxIncompleteExamples = 5
+	MaxGeneratedArity     = 1000
 )
 
 func (entry FuncEntry) MarshalJSON() ([]byte, error) {
@@ -170,6 +178,15 @@ func (response InterpretationValidateResponse) MarshalJSON() ([]byte, error) {
 	}
 	type wire InterpretationValidateResponse
 	return json.Marshal(wire{Errors: errors, Warnings: warnings})
+}
+
+func (response InterpretationGenerateResponse) MarshalJSON() ([]byte, error) {
+	errors := response.Errors
+	if errors == nil {
+		errors = []LogicError{}
+	}
+	type wire InterpretationGenerateResponse
+	return json.Marshal(wire{Interpretation: response.Interpretation, Seed: response.Seed, Errors: errors})
 }
 
 func (response EvaluateResponse) MarshalJSON() ([]byte, error) {

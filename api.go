@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"io"
@@ -27,6 +29,12 @@ type analyzeRequest struct {
 type validateInterpretationRequest struct {
 	Language       logic.Language       `json:"language"`
 	Interpretation logic.Interpretation `json:"interpretation"`
+}
+
+type generateInterpretationRequest struct {
+	Language   logic.Language `json:"language"`
+	DomainSize *int           `json:"domainSize,omitempty"`
+	Seed       *int64         `json:"seed,omitempty"`
 }
 
 func validateLanguageHandler(writer http.ResponseWriter, request *http.Request) {
@@ -80,6 +88,39 @@ func validateInterpretationHandler(writer http.ResponseWriter, request *http.Req
 		return
 	}
 	writeJSON(writer, http.StatusOK, logic.ValidateInterpretation(body.Language, body.Interpretation))
+}
+
+func generateInterpretationHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")
+		return
+	}
+	var body generateInterpretationRequest
+	if err := decodeJSON(request, &body); err != nil {
+		writeAPIError(writer, http.StatusBadRequest, "El cuerpo JSON no es válido.")
+		return
+	}
+	seed := int64(0)
+	if body.Seed != nil {
+		seed = *body.Seed
+	} else {
+		var seedBytes [8]byte
+		if _, err := rand.Read(seedBytes[:]); err != nil {
+			writeAPIError(writer, http.StatusInternalServerError, "No se pudo generar una semilla aleatoria.")
+			return
+		}
+		seed = int64(binary.LittleEndian.Uint64(seedBytes[:]) % (1<<53 - 1))
+	}
+	domainSize := 3
+	if body.DomainSize != nil {
+		domainSize = *body.DomainSize
+	}
+	interpretation, errors := logic.GenerateRandomInterpretation(body.Language, domainSize, seed)
+	response := logic.InterpretationGenerateResponse{Seed: seed, Errors: errors}
+	if len(errors) == 0 {
+		response.Interpretation = &interpretation
+	}
+	writeJSON(writer, http.StatusOK, response)
 }
 
 func evaluateHandler(writer http.ResponseWriter, request *http.Request) {

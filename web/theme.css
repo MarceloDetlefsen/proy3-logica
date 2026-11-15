@@ -115,3 +115,10 @@ body:before,body:after { display:none; }
 @media (max-width:430px) { .brand-copy .authors { display:none; } }
 @media (prefers-reduced-motion:reduce) { .button,.appearance-button,.help-button,.icon-button { transition:none; } }
 @media (prefers-reduced-motion:reduce) { .tutorial-scene [class] { opacity:1!important; transform:none!important; animation:none!important; } }
+.evaluation-steps { position:sticky; top:8px; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:12px; margin:18px 0 12px; padding:12px; border:1px solid var(--border); border-radius:14px; background:color-mix(in srgb,var(--surface-elevated) 94%,transparent); backdrop-filter:blur(16px); }
+.evaluation-step-status { flex:1; text-align:center; color:var(--text-muted); font-size:.78rem; line-height:1.45; }
+.result>details.step-current,.tree details.step-current { border-left:3px solid var(--accent); border-radius:0 10px 10px 0; background:color-mix(in srgb,var(--accent) 8%,transparent); box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent); }
+.tree details.step-visited { border-left-color:var(--success); }
+.tree details.decisive-branch > summary::after { content:"Rama decisiva"; display:inline-block; margin-left:10px; padding:3px 7px; border-radius:999px; background:color-mix(in srgb,var(--success) 16%,transparent); color:var(--success); font-size:.65rem; font-weight:700; }
+.decisive-binding { width:fit-content; max-width:100%; margin:10px 0; padding:9px 12px; border:1px solid color-mix(in srgb,var(--success) 48%,transparent); border-radius:10px; background:color-mix(in srgb,var(--success) 13%,transparent); color:var(--success); font-weight:700; }
+@media(max-width:700px) { .evaluation-steps { flex-wrap:wrap; } .evaluation-step-status { order:-1; flex-basis:100%; text-align:left; } }

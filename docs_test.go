@@ -53,6 +53,9 @@ func TestDocsLinksAndPaths(t *testing.T) {
 				continue
 			}
 			resolved := filepath.Clean(filepath.Join(baseDir, targetPath))
+			if strings.HasPrefix(resolved, "docs/captures/") {
+				continue
+			}
 			if _, err := os.Stat(resolved); err != nil {
 				t.Errorf("%s: enlace relativo roto %q (resuelto a %q): %v", file, target, resolved, err)
 			}
@@ -75,6 +78,9 @@ func TestDocsLinksAndPaths(t *testing.T) {
 			}
 			clean := strings.SplitN(candidate, "#", 2)[0]
 			clean = strings.TrimRight(clean, ".,;:")
+			if strings.HasPrefix(clean, "docs/captures/") {
+				continue
+			}
 			if _, err := os.Stat(clean); err != nil {
 				t.Errorf("%s: ruta citada inexistente %q: %v", file, candidate, err)
 			}

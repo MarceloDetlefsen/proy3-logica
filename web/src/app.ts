@@ -120,15 +120,21 @@ async function loadExample(name: string) {
     exampleDirty = false;
     $("#example-description").textContent = state.example.description;
     window.scrollTo(0, 0);
-    applyNavState(setPhase(navState, "evaluation"), true, "forward");
+    applyNavState(setPhase(navState, "evaluation"), true, "forward", false);
     $("#evaluation-status").textContent =
       "Ejemplo cargado: " + (exampleMeta[name]?.[0] || name) + ".";
-    const focusEvaluateWhenReady = (attempts = 20) => {
+    let focusedOnce = false;
+    const focusEvaluateWhenReady = (attempts = 40) => {
       evaluation.updateButton();
       const btn = $("#evaluate") as HTMLButtonElement | null;
-      if (btn && !btn.disabled) {
-        btn.focus();
-      } else if (attempts > 0) {
+      if (btn && !btn.disabled && navState.phase === "evaluation" && !navState.auxView) {
+        if (!focusedOnce || document.activeElement === document.body || document.activeElement === null) {
+          btn.focus();
+          focusedOnce = document.activeElement === btn;
+        }
+        if (focusedOnce && attempts <= 34) return;
+      }
+      if (attempts > 0) {
         setTimeout(() => focusEvaluateWhenReady(attempts - 1), 80);
       }
     };
@@ -178,14 +184,24 @@ let leftCloseTimer: number | null = null;
 let rightOpenTimer: number | null = null;
 let rightCloseTimer: number | null = null;
 
+function syncFocusPanelTop() {
+  const topbar = document.querySelector(".topbar");
+  const bottom = topbar ? Math.ceil(topbar.getBoundingClientRect().bottom) : 84;
+  const topPx = Math.max(16, bottom + 10);
+  evaluatorWorkspace.style.setProperty("--focus-panel-top", `${topPx}px`);
+}
+
 function syncFocusSidebars() {
   const focus = navState.focusMode;
+  if (focus) syncFocusPanelTop();
   evaluatorWorkspace.classList.toggle("history-focus", focus);
   focusHandleLeft.classList.toggle("hidden", !focus);
-  focusHandleRight.classList.toggle("hidden", !focus);
+  focusHandleRight.classList.add("hidden");
+  focusEdgeRight.classList.add("hidden");
   if (!focus) {
     leftPeek = false;
     rightPeek = false;
+    evaluatorWorkspace.classList.remove("left-peek-open");
     sidebarEl.classList.remove("is-peek");
     modelRailEl.classList.remove("is-peek");
     sidebarEl.inert = false;
@@ -197,13 +213,14 @@ function syncFocusSidebars() {
     return;
   }
   const leftOpen = leftPeek || sidebarEl.matches(":focus-within");
-  const rightOpen = rightPeek || modelRailEl.matches(":focus-within");
+  rightPeek = false;
+  evaluatorWorkspace.classList.toggle("left-peek-open", leftOpen);
   sidebarEl.classList.toggle("is-peek", leftPeek);
-  modelRailEl.classList.toggle("is-peek", rightPeek);
+  modelRailEl.classList.remove("is-peek");
   sidebarEl.inert = !leftOpen;
-  modelRailEl.inert = !rightOpen;
+  modelRailEl.inert = true;
   focusHandleLeft.setAttribute("aria-expanded", String(leftOpen));
-  focusHandleRight.setAttribute("aria-expanded", String(rightOpen));
+  focusHandleRight.setAttribute("aria-expanded", "false");
   const menuBtn = document.getElementById("history-toggle-menu");
   if (menuBtn) menuBtn.setAttribute("aria-expanded", String(leftOpen));
 }
@@ -254,11 +271,27 @@ function wireEdgePeek(
 wireEdgePeek("left", focusEdgeLeft, sidebarEl);
 wireEdgePeek("right", focusEdgeRight, modelRailEl);
 
+let pointerDownOnHandle = false;
+focusHandleLeft.addEventListener("pointerdown", () => { pointerDownOnHandle = true; });
+focusHandleRight.addEventListener("pointerdown", () => { pointerDownOnHandle = true; });
+window.addEventListener("pointerup", () => { pointerDownOnHandle = false; });
+window.addEventListener("resize", () => { if (navState.focusMode) syncFocusPanelTop(); });
+window.addEventListener("scroll", () => { if (navState.focusMode) syncFocusPanelTop(); }, { passive: true });
+
+focusHandleLeft.addEventListener("focus", () => {
+  if (navState.focusMode && !pointerDownOnHandle) setPeek("left", true);
+});
+focusHandleRight.addEventListener("focus", () => {
+  if (navState.focusMode && !pointerDownOnHandle) setPeek("right", true);
+});
+
 focusHandleLeft.addEventListener("click", () => {
+  pointerDownOnHandle = false;
   setPeek("left", !leftPeek);
   if (leftPeek) (sidebarEl.querySelector("a, button") as HTMLElement | null)?.focus();
 });
 focusHandleRight.addEventListener("click", () => {
+  pointerDownOnHandle = false;
   setPeek("right", !rightPeek);
 });
 
@@ -524,7 +557,7 @@ const historyUI = createHistoryUI(
     if (navState.auxView === "historia") {
       navState = { ...navState, historyChapter: String(number1Based) };
       const targetHash = formatHash(navState);
-      if (location.hash !== targetHash) history.replaceState(null, "", targetHash);
+      if (location.hash !== targetHash) history.pushState(null, "", targetHash);
     }
   },
   () => {
@@ -602,9 +635,40 @@ function closeTutorial(completed = false) {
 $("#open-tutorial").addEventListener("click", showTutorial); $("#close-tutorial").addEventListener("click", () => closeTutorial()); $("#skip-tutorial").addEventListener("click", () => closeTutorial());
 $("#tutorial-back").addEventListener("click", () => { tutorialIndex = Math.max(0, tutorialIndex - 1); renderTutorial(); });
 $("#tutorial-next").addEventListener("click", () => { if (tutorialIndex === tutorialSteps.length - 1) closeTutorial(true); else { tutorialIndex++; renderTutorial(); } });
+document.addEventListener("pointerdown", (event) => {
+  if (!navState.focusMode) return;
+  const target = event.target as Node | null;
+  if (!target) return;
+  const menuBtn = document.getElementById("history-toggle-menu");
+  const insideLeft =
+    sidebarEl.contains(target) ||
+    focusHandleLeft.contains(target) ||
+    (menuBtn ? menuBtn.contains(target) : false);
+  const insideRight = modelRailEl.contains(target) || focusHandleRight.contains(target);
+  if ((leftPeek && !insideLeft) || (rightPeek && !insideRight)) {
+    if (!insideLeft) leftPeek = false;
+    if (!insideRight) rightPeek = false;
+    if (!insideLeft && sidebarEl.contains(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+    if (!insideRight && modelRailEl.contains(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+    syncFocusSidebars();
+  }
+});
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
   if (!appearanceMenu.classList.contains("hidden")) { event.preventDefault(); closeAppearance(); return; }
-  if (!tutorial.classList.contains("hidden")) { event.preventDefault(); closeTutorial(); }
+  if (!tutorial.classList.contains("hidden")) { event.preventDefault(); closeTutorial(); return; }
+  if (navState.focusMode && (leftPeek || rightPeek || sidebarEl.matches(":focus-within") || modelRailEl.matches(":focus-within"))) {
+    event.preventDefault();
+    leftPeek = false;
+    rightPeek = false;
+    if (sidebarEl.contains(document.activeElement) || modelRailEl.contains(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+    syncFocusSidebars();
+  }
 });
 if (location.hash) enterEvaluator(false);

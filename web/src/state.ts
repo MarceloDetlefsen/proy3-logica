@@ -139,6 +139,34 @@ function mockRequest(path: string, body: any): Promise<any> {
     return Promise.resolve(mockGenerateInterpretation(body));
   }
   const example = state.example;
+  if (path === "/api/models/search") {
+    const maxDomainSize = Math.max(1, Number(body?.maxDomainSize) || 3);
+    if (!example) {
+      return Promise.resolve({
+        checked: 0,
+        evaluated: 0,
+        maxDomainSize,
+        complete: false,
+        limitReached: false,
+        errors: mockErrors(["MOCK_NO_EXAMPLE"]),
+      });
+    }
+    const value = Boolean(example.expect?.value);
+    const hit = {
+      interpretation: example.interpretation,
+      env: example.env || {},
+    };
+    return Promise.resolve({
+      satisfying: value ? hit : undefined,
+      falsifying: value ? undefined : hit,
+      checked: 1,
+      evaluated: 1,
+      maxDomainSize,
+      complete: true,
+      limitReached: false,
+      errors: [],
+    });
+  }
   if (!example) {
     if (path === "/api/language/validate") {
       return Promise.resolve({ language: body, errors: [] });

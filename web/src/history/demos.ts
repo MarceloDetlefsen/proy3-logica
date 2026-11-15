@@ -407,7 +407,21 @@ function renderGliderVisual(host: HTMLElement) {
       window.clearInterval(timer);
       timer = null;
     }
-    playBtn.textContent = "Reproducir";
+    playBtn.textContent = prefersReducedMotion() ? "Animar" : "Reproducir";
+  }
+
+  function start() {
+    if (timer !== null) return;
+    playBtn.textContent = "Pausar";
+    timer = window.setInterval(() => {
+      if (!document.body.contains(figure)) {
+        stop();
+        return;
+      }
+      grid = stepLifeGrid(grid);
+      generation++;
+      draw();
+    }, 320);
   }
 
   playBtn.addEventListener("click", () => {
@@ -421,17 +435,12 @@ function renderGliderVisual(host: HTMLElement) {
       draw();
       return;
     }
-    playBtn.textContent = "Pausar";
-    timer = window.setInterval(() => {
-      if (!document.body.contains(figure)) {
-        stop();
-        return;
-      }
-      grid = stepLifeGrid(grid);
-      generation++;
-      draw();
-    }, 320);
+    start();
   });
+
+  if (!reduced) {
+    start();
+  }
 
   figure.querySelector("#glider-step")?.addEventListener("click", () => {
     stop();

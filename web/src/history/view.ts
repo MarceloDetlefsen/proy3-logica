@@ -53,16 +53,15 @@ export function createHistoryUI(
 
   root.innerHTML = `
     <div class="history-header">
-      <div>
-        <span class="phase-label">HISTORIA · DE EUCLIDES A TURING</span>
+      <button class="button history-header-back" id="history-back-to-work" type="button">← Volver al evaluador</button>
+      <div class="history-header-center">
+        <div class="history-header-meta">
+          <span class="phase-label">HISTORIA · DE EUCLIDES A TURING</span>
+          <span class="progress-pill" id="history-progress" aria-live="polite"></span>
+        </div>
         <h2 id="history-title">¿Cómo descubrimos los límites de la lógica?</h2>
-        <p class="intro">Once capítulos interactivos que conectan los fundamentos del curso con lo que ejecuta este evaluador.</p>
       </div>
-      <div class="history-header-actions">
-        <span class="progress-pill" id="history-progress" aria-live="polite"></span>
-        <button class="button" id="history-toggle-menu" type="button" aria-expanded="false" aria-controls="evaluator-sidebar">Menú</button>
-        <button class="button" id="history-back-to-work" type="button">← Volver al evaluador</button>
-      </div>
+      <button class="button history-header-menu" id="history-toggle-menu" type="button" aria-expanded="false" aria-controls="evaluator-sidebar">Menú</button>
     </div>
     <nav class="history-timeline" id="history-timeline" aria-label="Línea de tiempo histórica"></nav>
     <article class="history-stage" id="history-stage" tabindex="-1" aria-live="polite"></article>
@@ -133,39 +132,47 @@ export function createHistoryUI(
     const chapter = HISTORY_CHAPTERS[activeIndex];
     visited.add(chapter.id);
     saveVisited(visited);
-    progress.textContent = `Capítulo ${chapter.number} / ${HISTORY_CHAPTERS.length} · ${visited.size} leídos`;
+    const readLabel = visited.size === 1 ? "1 leído" : `${visited.size} leídos`;
+    progress.textContent = `Capítulo ${chapter.number} / ${HISTORY_CHAPTERS.length} · ${readLabel}`;
 
     renderTimeline();
 
     const activeBtn = timeline.querySelector(".history-step.active") as HTMLElement | null;
     activeBtn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
 
-    const portraitsHtml = chapter.portraits
-      .map(
-        (p) => `
+    const renderPortrait = (p: (typeof chapter.portraits)[number]) => `
         <figure class="history-portrait">
-          <img src="${escapeHTML(p.src)}" alt="${escapeHTML(p.alt)}" loading="lazy" />
+          <img src="${escapeHTML(p.src)}" alt="${escapeHTML(p.alt)}" />
           <figcaption>
             <strong>${escapeHTML(p.caption)}</strong>
             <span>${escapeHTML(p.credit)}</span>
           </figcaption>
-        </figure>`
-      )
-      .join("");
+        </figure>`;
 
     const narrativeHtml = chapter.narrative.map((p) => `<p>${escapeHTML(p)}</p>`).join("");
     const sourcesHtml = chapter.sources.map((s) => `<li>${escapeHTML(s)}</li>`).join("");
-
-    stage.innerHTML = `
-      <div class="history-chapter-top">
-        <div class="history-portraits">${portraitsHtml}</div>
+    const hasTwoPortraits = chapter.portraits.length === 2;
+    const copyHtml = `
         <div class="history-copy">
           <span class="phase-label">CAPÍTULO ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.year)}</span>
           <h3>${escapeHTML(chapter.title)}</h3>
           <p class="history-subtitle">${escapeHTML(chapter.subtitle)}</p>
           <div class="history-narrative">${narrativeHtml}</div>
-        </div>
-      </div>
+        </div>`;
+
+    const chapterTopHtml = hasTwoPortraits
+      ? `<div class="history-chapter-top has-two-portraits">
+           <div class="history-portraits history-portraits-left">${renderPortrait(chapter.portraits[0])}</div>
+           ${copyHtml}
+           <div class="history-portraits history-portraits-right">${renderPortrait(chapter.portraits[1])}</div>
+         </div>`
+      : `<div class="history-chapter-top">
+           <div class="history-portraits">${chapter.portraits.map(renderPortrait).join("")}</div>
+           ${copyHtml}
+         </div>`;
+
+    stage.innerHTML = `
+      ${chapterTopHtml}
       <div class="history-callouts">
         <div class="history-box">
           <span class="mini-label">IDEA CLAVE</span>

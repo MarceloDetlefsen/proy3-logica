@@ -41,19 +41,14 @@ jobs:
             exit 1
           fi
 
-      - name: Ejecutar go vet (nativo y WASM)
-        run: |
-          go vet ./...
-          GOOS=js GOARCH=wasm go vet ./internal/... ./cmd/wasm
+      - name: Ejecutar go vet
+        run: go vet ./...
 
       - name: Ejecutar pruebas con detector de carreras
         run: go test -race ./...
 
       - name: Compilar y verificar sitio estático WASM
-        run: |
-          ./scripts/build-pages.sh
-          ./scripts/check-pages.sh
-          node scripts/wasm-smoke.mjs
+        run: ./scripts/verify-pages.sh
 
       - name: Verificar enlaces y rutas de documentación
         run: make docs-check

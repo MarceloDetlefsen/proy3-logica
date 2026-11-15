@@ -38,10 +38,7 @@ jobs:
       - name: Compilar y probar WASM
         run: |
           npm ci
-          go vet ./internal/... ./cmd/wasm
-          ./scripts/build-pages.sh
-          ./scripts/check-pages.sh
-          node scripts/wasm-smoke.mjs
+          ./scripts/verify-pages.sh
 
   deploy:
     name: Desplegar en GitHub Pages

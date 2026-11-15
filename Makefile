@@ -1,7 +1,7 @@
 CONTAINER_CLI ?= $(shell command -v docker >/dev/null 2>&1 && echo docker || echo podman)
 IMAGE_NAME ?= proy3-logica:local
 
-.PHONY: run test bench pages docker-build docker-run docs-check
+.PHONY: run test bench pages verify-pages docker-build docker-run docs-check
 
 run:
 	npm run build:web
@@ -17,6 +17,9 @@ bench:
 pages:
 	./scripts/build-pages.sh
 	./scripts/check-pages.sh
+
+verify-pages:
+	./scripts/verify-pages.sh
 
 docker-build:
 	$(CONTAINER_CLI) build -t $(IMAGE_NAME) .

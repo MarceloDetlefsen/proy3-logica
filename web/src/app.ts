@@ -10,7 +10,7 @@ const actions = {};
 const interpretation = createInterpretationUI(actions);
 const formula = createFormulaUI(actions);
 const evaluation = createEvaluationUI(actions);
-Object.assign(actions, { renderTables: interpretation.renderTables, validateInterpretation: interpretation.validate, analyze: formula.analyze, updateEvaluate: evaluation.updateButton });
+Object.assign(actions, { renderTables: interpretation.renderTables, validateInterpretation: interpretation.validate, analyze: formula.analyze, updateEvaluate: evaluation.updateButton, updateSummary: () => { markResultStale(); updateSummary(); } });
 const language = createLanguageUI(actions);
 interpretation.renderDomain();
 

@@ -1,4 +1,4 @@
-# Evaluador semántico
+# Parcial 3 -  Evaluador Semántico
 
 [![CI](https://github.com/MarceloDetlefsen/proy3-logica/actions/workflows/ci.yml/badge.svg)](https://github.com/MarceloDetlefsen/proy3-logica/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/MarceloDetlefsen/proy3-logica/actions/workflows/pages.yml/badge.svg)](https://github.com/MarceloDetlefsen/proy3-logica/actions/workflows/pages.yml)
@@ -6,8 +6,6 @@
 Aplicación web gráfica para evaluar fórmulas de lógica de primer orden sobre interpretaciones finitas definidas por el usuario. Determina si una fórmula es **Verdadera** o **Falsa** bajo la semántica de Tarski y construye un árbol de explicación interactivo con testigos, contraejemplos, comprobaciones completas y ramas decisivas, además de exportar el procedimiento completo a PDF mediante LaTeX.
 
 - **Demo en línea (GitHub Pages):** <https://marcelodetlefsen.github.io/proy3-logica/> *(ejecuta el núcleo lógico Go compilado a WebAssembly dentro de un Web Worker en el navegador; la exportación descarga el archivo `.tex` y requiere el servidor Docker para compilar el PDF)*.
-- **Contexto académico:** Universidad del Valle de Guatemala (UVG) — Curso **MM3032 Lógica Matemática**, proyecto en equipo *"Evaluador semántico"*.
-- **Índice de estudio completo:** [docs/README.md](docs/README.md)
 
 ![Interfaz principal del Evaluador semántico](docs/captures/principal.png)
 
@@ -118,41 +116,26 @@ Más detalle: [docs/despliegue.md](docs/despliegue.md) · [docs/rendimiento.md](
 - `POST /api/evaluate`
 - `POST /api/evaluate/export/pdf`
 
-Ejemplo con `curl`:
-
-```bash
-curl -s -X POST http://localhost:8080/api/evaluate \
-  -H "Content-Type: application/json" \
-  -d '{"language":{"funcs":{},"preds":{"P":1}},"input":"∀x P(x)","interpretation":{"domain":["a","b"],"funcs":{},"rels":{"P":[["a"],["b"]]}},"env":{}}'
-```
-
 Más detalle: [docs/api.md](docs/api.md) · [docs/parser.md](docs/parser.md)
 
 ---
 
 ## Arquitectura o pipeline
 
-```text
-  Interfaz TypeScript (web/src/*.ts)
-                 │
-                 ▼
-     Transporte (web/src/api.ts)
-        ┌────────┴─────────┐
-        ▼                  ▼
-  HTTP (api.go)      WASM Worker (worker.ts + cmd/wasm/main.go)
-        └────────┬─────────┘
-                 ▼
-  ValidateLanguage → Tokenize + ParseFormula → AnalyzeFormula
-                 │
-                 ▼
-  ValidateInterpretation + validación de Env → EvaluateFormula (Tarski)
-                 │
-                 ▼
-  Árbol Explanation (testigo / contraejemplo / completo / recorte)
-        ┌────────┴─────────┐
-        ▼                  ▼
-  export_pdf.go      tex.go (modo WASM)
-  pdflatex -> .pdf   descarga .tex
+```mermaid
+flowchart TD
+  UI["Interfaz TypeScript (web/src/*.ts)"] --> T["Capa de transporte (web/src/api.ts)"]
+  T -->|"PROY3_BACKEND = http"| HTTP["Servidor HTTP Go (main.go, api.go)"]
+  T -->|"PROY3_BACKEND = wasm"| WASM["Web Worker + logic.wasm (worker.ts, cmd/wasm/main.go)"]
+  HTTP --> LANG["ValidateLanguage (language.go)"]
+  WASM --> LANG
+  LANG --> PARSE["Tokenize + ParseFormula (lexer.go, parser.go)"]
+  PARSE --> ANALYZE["AnalyzeFormula (analyze.go)"]
+  ANALYZE --> INTERP["ValidateInterpretation + Env (interpretation_validate.go)"]
+  INTERP --> EVAL["EvaluateFormula — Semántica de Tarski (evaluate.go)"]
+  EVAL --> TREE["Árbol Explanation (testigo / contraejemplo / completo / recorte)"]
+  TREE -->|"Modo HTTP"| PDF["export_pdf.go → pdflatex → .pdf"]
+  TREE -->|"Modo WASM"| TEX["internal/logic/tex.go → descarga .tex"]
 ```
 
 Decisiones técnicas clave:
@@ -301,62 +284,84 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 | 6. Resultado Verdadero/Falso y explicación decisiva (testigo, contraejemplo, completa) | ✅ Cumple | `evaluationState.eval` (`internal/logic/evaluate.go`), `TestEvaluateSharedExamples` sobre 18 fixtures |
 | 7. Detección de errores sin emitir valor de verdad | ✅ Cumple | `EvaluateFormula` retorna `Result: nil` si `len(Errors) > 0`; `TestInterpretationAndEvaluationErrorCodes` |
 
-### Criterios básicos de la rúbrica
-
-| Criterio | Puntos | Cumple | Verificación |
-| --- | --- | --- | --- |
-| Evaluación semántica y justificación | 30 | ✅ | `go test ./...` (`TestEvaluateSharedExamples`, `checkExplanation`) |
-| Análisis sintáctico | 10 | ✅ | `go test ./...` (`TestTokenize*`, `TestParseFormula*`) |
-| Interfaz gráfica | 10 | ✅ | `npm run build:web`, `web/src/*.ts`, [`docs/ui-checklist.md`](docs/ui-checklist.md) |
-
-Puntaje básico cumplido: **50/50** *(verificable en código; los 30 puntos de defensa individual y los 20 puntos de aportes creativos son calificados por el docente)*.
-
----
-
-## Rendimiento
-
-Mediciones reales con `go test -run=^$ -bench . -benchmem -count 5 ./...` sobre `go1.27.1-X:nodwarf5 linux/amd64`, CPU `11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz` (16 hilos), `Linux 6.1.189-1-MANJARO` (promedio de 5 ejecuciones; `EvaluateFormula` incluye revalidación completa de lenguaje e interpretación).
-
-| Escenario o componente | Tiempo promedio | Memoria / op | Configuración |
-| --- | --- | --- | --- |
-| Análisis de fórmula corta | 4.69 µs | 3 888 B | `∀x (P(x) → R(x, f(c)))` |
-| Análisis de fórmula larga | 49.65 µs | 40 248 B | 2 cuantificadores, 12 cláusulas |
-| Evaluación 1 cuantificador ($\|D\|=20$) | 6.73 ms | 3 268 410 B | `∀x P(x)`, comprobación completa + validación |
-| Evaluación 2 cuantificadores ($\|D\|=15$) | 2.94 ms | 1 519 035 B | `∀x ∀y R(x, y)` (225 pares) |
-| Evaluación 3 cuantificadores ($\|D\|=10$) | 2.28 ms | 2 307 742 B | `∀x ∀y ∀z T(x, y, z)` (1 000 ternas) |
-| Construcción de árbol recortado ($\|D\|=20$) | 25.75 ms | 19 660 294 B | 3 cuantificadores, recorte en `maxExplanationNodes = 2000` |
-| Generación aleatoria ($\|D\|=25$) | 60.17 µs | 109 773 B | `GenerateRandomInterpretation` |
-| Generación de `.tex` | 52.38 µs | 59 969 B | `evaluationTeX` (sin invocar `pdflatex`) |
-
-Más detalle: [docs/rendimiento.md](docs/rendimiento.md)
-
----
-
 ## Estructura del proyecto
 
 ```text
 .
-├── .dockerignore              # Exclusiones para el contexto de build Docker
-├── .github/workflows/         # Workflows CI, Docker (GHCR) y GitHub Pages
-├── Dockerfile                 # Build multi-stage (Node + Go estático + TeX Live)
-├── Makefile                   # Atajos: run, test, bench, pages, docker-*, docs-check
-├── README.md                  # Documentación principal del proyecto
-├── api.go                     # Handlers HTTP de /api/*
-├── api_test.go                # Pruebas de integración HTTP
-├── cmd/wasm/main.go           # Punto de entrada WebAssembly (js/wasm)
-├── docker-compose.yml         # Servicio endurecido con read_only y tmpfs
-├── docs/                      # Documentación de estudio, auditoría y defensa
-├── docs_test.go               # Verificación automática de enlaces y rutas en docs
-├── export_pdf.go              # Compilación segura de .tex a PDF con pdflatex
-├── export_pdf_bench_test.go   # Benchmark de generación .tex
-├── go.mod                     # Módulo Go 1.27 (sin dependencias externas)
-├── internal/logic/            # Núcleo lógico puro: lexer, parser, Tarski, TeX
-├── main.go                    # Servidor HTTP embebido, /healthz y -healthcheck
-├── package.json               # Script build:web con TypeScript 5
-├── scripts/                   # Scripts de build Pages, check-pages, smoke tests
-├── testdata/examples/         # 18 fixtures JSON válidos e inválidos
-├── types.go                   # Tipos heredados sin uso activo (código muerto)
-└── web/                       # Frontend TypeScript vanilla, CSS y config.js
+├── .dockerignore                         # Exclusiones del contexto de compilación Docker
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                        # Pruebas Go/WASM, docs-check y smoke test Docker
+│       ├── docker.yml                    # Publicación de imagen en GHCR (main y tags v*)
+│       └── pages.yml                     # Despliegue estático en GitHub Pages
+├── Dockerfile                            # Build multi-stage (Node + Go estático + TeX Live)
+├── Makefile                              # Atajos: run, test, bench, pages, verify-pages, docker-*, docs-check
+├── README.md                             # Documentación principal del proyecto
+├── api.go                                # Handlers HTTP de /api/*
+├── api_test.go                           # Pruebas de integración HTTP y /healthz
+├── cmd/
+│   └── wasm/
+│       └── main.go                       # Punto de entrada WebAssembly (//go:build js && wasm)
+├── docker-compose.yml                    # Servicio endurecido (read_only, tmpfs, cap_drop)
+├── docs/
+│   ├── README.md                         # Índice de estudio y orden de lectura
+│   ├── arquitectura.md                   # Pipeline, paquetes y contrato Go/TypeScript
+│   ├── contrato-evaluador.md             # Especificación JSON compartida entre Go y TS
+│   ├── creativos.md                      # Aportes creativos y rúbrica
+│   ├── defensa.md                        # Banco de preguntas por módulo y guion de 3 min
+│   ├── despliegue.md                     # Modos local, Docker y GitHub Pages (WASM)
+│   ├── evaluador.md                      # Semántica de Tarski, errores y ejemplos a mano
+│   ├── explicacion.md                    # Construcción de testigos, contraejemplos y recorte
+│   ├── exportacion-pdf.md                # Plantilla LaTeX, paquetes TeX y endurecimiento
+│   ├── parser.md                         # Gramática, precedencia, aliases y offsets en runes
+│   ├── rendimiento.md                    # Benchmarks con testing.B y límites observados
+│   └── captures/                         # Capturas reales de la interfaz enlazadas en el README
+├── docs_test.go                          # Verificación automática de enlaces y rutas en docs
+├── export_pdf.go                         # Invocación segura de pdflatex con timeout y -no-shell-escape
+├── export_pdf_bench_test.go              # Benchmark de generación .tex
+├── go.mod                                # Módulo Go 1.27 (cero dependencias externas)
+├── internal/
+│   └── logic/
+│       ├── analyze.go                    # Análisis de fórmula y cálculo de variables libres
+│       ├── api_pipeline.go               # Lógica compartida entre HTTP y WASM
+│       ├── ast.go                        # Nodos Term y Formula y serialización JSON
+│       ├── errors.go                     # Códigos y estructura LogicError
+│       ├── evaluate.go                   # Evaluador de Tarski, presupuesto y árbol Explanation
+│       ├── evaluator_contract.go         # Contrato JSON y límites (MaxDomainSize, MaxTableEntries)
+│       ├── interpretation_generate.go    # Generación aleatoria reproducible por semilla
+│       ├── interpretation_validate.go    # Validación de dominio, funciones totales y relaciones
+│       ├── language.go                   # Validación de nombres, aridades y palabras reservadas
+│       ├── lexer.go                      # Tokenizador Unicode/ASCII con offsets en runes
+│       ├── logic_bench_test.go           # Benchmarks de parser, evaluador, explicación y generación
+│       ├── parser.go                     # Parser por descenso recursivo con alcance fuerte
+│       └── tex.go                        # Generación pura en Go del documento LaTeX (.tex)
+├── main.go                               # Servidor HTTP embebido, /healthz y flag -healthcheck
+├── package.json                          # Script build:web (tsc -p web/tsconfig.json)
+├── scripts/
+│   ├── build-pages.sh                    # Genera dist/ (TS + logic.wasm + wasm_exec.js + config.js)
+│   ├── check-pages.sh                    # Verifica rutas relativas y archivos obligatorios en dist/
+│   ├── docker-smoke.sh                   # Levanta el contenedor y valida /healthz, evaluación y %PDF
+│   ├── verify-pages.sh                   # Verificación unificada de WASM para ci.yml y pages.yml
+│   └── wasm-smoke.mjs                    # Prueba logic.wasm en Node con fixtures de testdata/
+├── testdata/
+│   └── examples/                         # 18 fixtures JSON válidos e inválidos (ej. universal-verdadero.json)
+├── types.go                              # Tipos heredados sin uso activo (código muerto)
+└── web/
+    ├── index.html                        # Estructura de las 4 fases, ejemplos, lecciones y tutorial
+    ├── app.css                           # Estilos de componentes y disposición
+    ├── theme.css                         # Sistema visual Liquid Glass y 5 temas
+    ├── config.js                         # Selección de backend ("http" por defecto; "wasm" en Pages)
+    ├── types.ts                          # Tipos TypeScript espejados de internal/logic
+    ├── tsconfig.json                     # Configuración de TypeScript (ES2022)
+    └── src/
+        ├── api.ts                        # Transporte común HttpTransport / WasmTransport
+        ├── app.ts                        # Navegación de fases, ejemplos, temas y tutorial
+        ├── evaluation.ts                 # Evaluación, árbol paso a paso y exportación PDF/.tex
+        ├── formula.ts                    # Editor, inserción de símbolos, entorno y fórmula aleatoria
+        ├── interpretation.ts             # Dominio en chips, tablas y modelo aleatorio
+        ├── language.ts                   # Alta/baja de funciones y predicados
+        ├── state.ts                      # Estado global, debounce y modo ?mock=1
+        └── worker.ts                     # Web Worker que carga wasm_exec.js y logic.wasm
 ```
 
 ---
@@ -381,8 +386,10 @@ Más detalle: [docs/rendimiento.md](docs/rendimiento.md)
 
 ---
 
-## Autor
+## Autores
 
-- **Marcelo Detlefsen** - [completar] / *Universidad del Valle de Guatemala* / *MM3032 Lógica Matemática - Proyecto Evaluador semántico*
-- **Luis Angel Girón** - [completar] / *Universidad del Valle de Guatemala* / *MM3032 Lógica Matemática - Proyecto Evaluador semántico*
-- **Julián Divas (`jdivass`)** - [completar] / *Universidad del Valle de Guatemala* / *MM3032 Lógica Matemática - Proyecto Evaluador semántico*
+**Marcelo Detlefsen** - 24554<br>
+**Julían Divas** - 24687<br>
+**Luis Angel Girón** - 24753<br>
+*Universidad del Valle de Guatemala*<br>
+*Lógica Matemática - Parcial 3*

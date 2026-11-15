@@ -279,7 +279,7 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 | Análisis sintáctico | 10 | ✅ | Lexer, parser y análisis | `internal/logic/parser.go` (`ParseFormula`), `analyze.go` | `isReservedName` |
 | Interfaz gráfica | 10 | ✅ | UI 4 fases y controles | `web/src/app.ts`, `formula.ts`, `evaluation.ts` | `DEFAULT_WASM_TIMEOUT_MS` |
 | Defensa individual | 30 | — | Calificada por el docente | Guía en [`docs/defensa.md`](docs/defensa.md) | — |
-| Aportes creativos (creatividad 5, valor 6, calidad 6, defensa 3) | 20 | — | Calificados por el docente | Inventario en [`docs/creativos.md`](docs/creativos.md) | — |
+| Aportes creativos (incluye buscador de modelos y contramodelos) | 20 | — | Calificados por el docente | Inventario en [`docs/creativos.md`](docs/creativos.md) | `MaxSearchedInterpretations`, `MaxSearchedEvaluations` |
 
 ---
 
@@ -345,6 +345,7 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 │       ├── lexer.go                      # Tokenizador Unicode/ASCII con offsets en runes
 │       ├── logic_bench_test.go           # Benchmarks de parser, evaluador, explicación y generación
 │       ├── model_search.go               # Búsqueda acotada de modelos y contramodelos finitos
+│       ├── model_search_bench_test.go    # Benchmarks de SearchModels
 │       ├── model_search_test.go          # Pruebas unitarias de SearchModels
 │       ├── parser.go                     # Parser por descenso recursivo con alcance fuerte
 │       └── tex.go                        # Generación pura en Go del documento LaTeX (.tex)
@@ -383,6 +384,7 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 
 - **Costo exponencial de cuantificadores anidados:** Evaluar $k$ cuantificadores sobre $D$ cuesta $O(|D|^k)$ en el peor caso, acotado por `MaxEvaluationSteps = 100000`.
 - **Límites de tablas y dominio:** `MaxDomainSize = 100` y `MaxTableEntries = 10000` (y `maxExplanationNodes = 2000` nodos visuales).
+- **Búsqueda acotada de modelos (sin prueba de validez):** `SearchModels` está limitado a `MaxSearchedInterpretations = 2000`, `MaxSearchedEvaluations = 5000` y `maxSearchTableEntries = 128` sin ruptura de simetrías; no encontrar un contramodelo hasta tamaño $N$ **no** demuestra validez general.
 - **PDF solo en servidor o Docker:** GitHub Pages es estático y descarga el `.tex` en lugar de compilar el PDF.
 - **Timeout en navegador:** El Web Worker aborta operaciones WASM que superen 10 s.
 - **Doble subíndice en LaTeX:** Identificadores válidos con más de un guion bajo no inicial (ej. `x_1_2`) provocan error `Double subscript` al compilar con `pdflatex`.

@@ -88,6 +88,17 @@
 7. **¿Cómo funciona el `HEALTHCHECK` sin `curl`?** El propio binario Go acepta `-healthcheck`, consulta `http://127.0.0.1:<PORT>/healthz` y retorna código 0 o 1.
 8. **¿Qué verifican los workflows de CI/CD?** `ci.yml` valida formato, `vet` nativo y WASM, `go test -race`, smoke test WASM en Node, enlaces de docs y smoke test completo de Docker con PDF real.
 
+### 7. Búsqueda de modelos y contramodelos
+
+1. **¿Qué hace `SearchModels` y en qué orden busca?** Enumera tamaños de dominio `size = 1` hasta `maxDomainSize` (`1..100`) en [`internal/logic/model_search.go`](../internal/logic/model_search.go), priorizando los dominios más pequeños primero para hallar ejemplos mínimos.
+2. **¿Cómo enumera todas las funciones y relaciones válidas?** `enumerateFunctions` genera todas las asignaciones $D^n \to D$ por producto cartesiano; `enumerateRelations` recorre máscaras no nulas ($1 \dots 2^{|D|^n}-1$) garantizando que ninguna relación sea vacía.
+3. **¿Cómo maneja fórmulas abiertas con variables libres?** `enumerateEnvs` prueba todas las asignaciones posibles en $D^{|\text{libres}|}$, incrementando `evaluated` en cada combinación `(interpretación, entorno)`.
+4. **¿Cuándo se detiene temprano?** En cuanto encuentra tanto `Satisfying != nil` como `Falsifying != nil`, o al alcanzar `MaxSearchedInterpretations = 2000` o `MaxSearchedEvaluations = 5000`.
+5. **¿Qué significa `limitReached: true` vs `complete: false`?** Que se alcanzó alguna cota (`2000` interpretaciones, `5000` evaluaciones o `maxSearchTableEntries = 128` entradas en una tabla), por lo que la búsqueda no pudo agotar todo el espacio hasta `N`.
+6. **¿Aplican ruptura de simetrías (isomorfismos)?** No. Todas las interpretaciones etiquetadas sobre `d0..d(n-1)` se enumeran en orden lexicográfico, lo cual simplifica el código a costa de visitar estructuras isomorfas.
+7. **¿Si no encuentra contramodelo hasta `N = 3`, demuestra que la fórmula es válida?** No. Solo prueba que no tiene contramodelo en dominios de tamaño $\le 3$ dentro del presupuesto; una fórmula puede ser falsa únicamente en dominios mayores o infinitos.
+8. **¿Funciona igual en GitHub Pages (WASM) que en el servidor Go?** Sí: `cmd/wasm/main.go` expone `searchModels`, el Web Worker lo ejecuta fuera del hilo principal y `WasmTransport` aplica el timeout de 10 s.
+
 ---
 
 ## Guion de demostración de 3 minutos

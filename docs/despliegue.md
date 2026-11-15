@@ -47,9 +47,9 @@ docker run --rm -p 8080:8080 ghcr.io/marcelodetlefsen/proy3-logica:latest
 
 ## Modo estático WebAssembly (GitHub Pages)
 
-- [`cmd/wasm/main.go`](../cmd/wasm/main.go) compila `internal/logic` a `dist/logic.wasm` (`GOOS=js GOARCH=wasm`).
+- [`cmd/wasm/main.go`](../cmd/wasm/main.go) compila `internal/logic` a `dist/logic.wasm` (`GOOS=js GOARCH=wasm`) y expone `validateLanguage`, `analyze`, `validateInterpretation`, `generateInterpretation`, `evaluate`, `searchModels` y `exportEvaluationTeX`.
 - [`scripts/build-pages.sh`](../scripts/build-pages.sh) copia `wasm_exec.js` desde `$(go env GOROOT)/lib/wasm/`, compila TypeScript, copia `testdata/examples/*.json` a `dist/examples/`, genera `dist/config.js` con `window.PROY3_BACKEND = "wasm";` y crea `dist/.nojekyll`.
-- [`web/src/worker.ts`](../web/src/worker.ts) ejecuta `logic.wasm` fuera del hilo principal. [`web/src/api.ts`](../web/src/api.ts) correlaciona peticiones por `id` y aplica un timeout de 10 s (reiniciando el worker si se excede).
+- [`web/src/worker.ts`](../web/src/worker.ts) ejecuta `logic.wasm` fuera del hilo principal. [`web/src/api.ts`](../web/src/api.ts) correlaciona peticiones por `id` y aplica un timeout de 10 s (reiniciando el worker si se excede; en `POST /api/models/search` muestra el error en `#model-search-status`).
 
 ## Workflows de GitHub Actions
 

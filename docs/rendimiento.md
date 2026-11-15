@@ -15,7 +15,7 @@
 go test -run=^$ -bench . -benchmem -count 5 ./...
 ```
 
-Los benchmarks están definidos en [`internal/logic/logic_bench_test.go`](../internal/logic/logic_bench_test.go) y [`export_pdf_bench_test.go`](../export_pdf_bench_test.go).
+Los benchmarks están definidos en [`internal/logic/logic_bench_test.go`](../internal/logic/logic_bench_test.go), [`internal/logic/model_search_bench_test.go`](../internal/logic/model_search_bench_test.go) y [`export_pdf_bench_test.go`](../export_pdf_bench_test.go).
 
 ## Resultados medidos (promedio de 5 ejecuciones)
 
@@ -37,6 +37,10 @@ Los benchmarks están definidos en [`internal/logic/logic_bench_test.go`](../int
 | `BenchmarkGenerateRandomInterpretation/D10` | Generación aleatoria con $\|D\| = 10$ | 18 409 ns (18.41 µs) | 25 159 B | 263 |
 | `BenchmarkGenerateRandomInterpretation/D25` | Generación aleatoria con $\|D\| = 25$ | 60 165 ns (60.17 µs) | 109 773 B | 1 360 |
 | `BenchmarkEvaluationTeX` | Generación de código LaTeX (`.tex`) sin compilar `pdflatex` | 52 381 ns (52.38 µs) | 59 969 B | 1 008 |
+| `BenchmarkSearchModels/satisfacible_y_falsable_N2` | `∀x P(x)` con $N = 2$ (halla modelo en $\|D\|=1$ y contramodelo en $\|D\|=2$) | 13 141 ns (13.14 µs) | 9 743 B | 164 |
+| `BenchmarkSearchModels/sin_modelos_barbero_N2` | `∃b ∀x (Afeita(b,x) ↔ ¬Afeita(x,x))` con $N = 2$ (exhaustivo sin modelos) | 319 807 ns (319.81 µs) | 280 373 B | 4 185 |
+| `BenchmarkSearchModels/tautologia_abierta_N2` | `P(x) ∨ ¬P(x)` abierta con $N = 2$ (sin contramodelo) | 53 364 ns (53.36 µs) | 42 571 B | 628 |
+| `BenchmarkSearchModels/limite_presupuesto_N3` | `∀x ∀y (R(x,y) ∨ ¬R(x,y))` con $f/1, R/2, N = 3$ (alcanza `MaxSearchedInterpretations = 2000`) | 79 527 226 ns (79.53 ms) | 74 701 461 B | 1 144 296 |
 
 ## Interpretación y límites observados
 
@@ -49,3 +53,4 @@ Los benchmarks están definidos en [`internal/logic/logic_bench_test.go`](../int
    - `MaxEvaluationSteps = 100000` (`internal/logic/evaluate.go`)
    - `maxExplanationNodes = 2000` (`internal/logic/evaluate.go`)
 5. **Generación de `.tex` vs compilación PDF:** Construir el texto `.tex` toma apenas ~52.38 µs en Go puro (`evaluationTeX` en [`export_pdf.go`](../export_pdf.go)). El cuello de botella de la exportación a PDF es la invocación externa de `pdflatex`, acotada por un timeout de 30 s en `compileEvaluationPDF`.
+6. **Búsqueda de modelos (`SearchModels`):** Cuando la fórmula tiene modelo y contramodelo en dominios pequeños (`∀x P(x)`, $N=2$), la búsqueda corta temprano en ~13.14 µs. Si explora todo el espacio hasta $N=2$ sin modelos (`sin_modelos_barbero_N2`), tarda ~319.81 µs; cuando el espacio combinatorio de funciones y relaciones alcanza el tope `MaxSearchedInterpretations = 2000` (`limite_presupuesto_N3`), tarda ~79.53 ms y ~71.2 MiB asignados en total.

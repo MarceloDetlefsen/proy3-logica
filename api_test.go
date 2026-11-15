@@ -181,3 +181,37 @@ func TestGenerateInterpretationAPI(t *testing.T) {
 		t.Fatalf("relation must not be empty: %#v", response.Interpretation.Rels)
 	}
 }
+
+func TestHealthzAPI(t *testing.T) {
+	server := newServer()
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /healthz: want 200, got %d", rec.Code)
+	}
+
+	reqPost := httptest.NewRequest(http.MethodPost, "/healthz", nil)
+	recPost := httptest.NewRecorder()
+	server.ServeHTTP(recPost, reqPost)
+	if recPost.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("POST /healthz: want 405, got %d", recPost.Code)
+	}
+}
+
+func TestListenAddress(t *testing.T) {
+	t.Setenv("ADDR", "")
+	t.Setenv("PORT", "")
+	if got := listenAddress(); got != ":8080" {
+		t.Fatalf("default listenAddress: want :8080, got %q", got)
+	}
+	t.Setenv("PORT", "9090")
+	if got := listenAddress(); got != ":9090" {
+		t.Fatalf("PORT=9090 listenAddress: want :9090, got %q", got)
+	}
+	t.Setenv("ADDR", "0.0.0.0:7070")
+	if got := listenAddress(); got != "0.0.0.0:7070" {
+		t.Fatalf("ADDR listenAddress: want 0.0.0.0:7070, got %q", got)
+	}
+}

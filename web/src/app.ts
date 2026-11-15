@@ -62,7 +62,7 @@ async function loadExample(name: string) {
   if (card) card.disabled = true;
   $("#example-description").textContent = "Cargando " + (exampleMeta[name]?.[0] || "ejemplo") + "…";
   try {
-    const response = await fetch("/examples/" + name + ".json");
+    const response = await fetch("examples/" + name + ".json");
     if (!response.ok) throw new Error("No se pudo cargar el ejemplo.");
     state.example = await response.json();
     applyingExample = true;

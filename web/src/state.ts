@@ -1,3 +1,4 @@
+import { getTransport } from "./api.js";
 import type {
   AnalyzeResponse,
   Env,
@@ -121,20 +122,11 @@ export function request(
     env: Env;
   },
 ): Promise<EvaluateResponse>;
-export async function request(path: string, body: unknown): Promise<any> {
+export async function request(path: string, body: unknown, signal?: AbortSignal): Promise<any> {
   if (state.mockMode) {
     return mockRequest(path, body);
   }
-  const response = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || `Error HTTP ${response.status}`);
-  }
-  return data;
+  return getTransport().request(path, body, signal);
 }
 
 function mockRequest(path: string, body: any): Promise<any> {

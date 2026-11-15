@@ -4,6 +4,7 @@ import { createInterpretationUI } from "./interpretation.js";
 import { createFormulaUI } from "./formula.js";
 import { createEvaluationUI } from "./evaluation.js";
 import { createHistoryUI } from "./history/view.js";
+import { attachHistoryDemos } from "./history/demos.js";
 
 const actions = {};
 const interpretation = createInterpretationUI(actions);
@@ -260,6 +261,30 @@ const historyUI = createHistoryUI(() => {
   const phase = learningReturnPhase;
   activePhase = "";
   openPhase(phase, "back");
+});
+historyUI.setRenderHook((chapter, slots) => {
+  attachHistoryDemos(chapter, slots, {
+    loadPresetInEvaluator(preset, runModelSearch) {
+      if (hasUserWork() && (!state.example || exampleDirty) && !window.confirm("Este ejemplo de Historia reemplazará los datos que editaste. ¿Quieres continuar?")) return;
+      applyingExample = true;
+      language.load(preset.language);
+      interpretation.load(preset.interpretation);
+      formula.load(preset.input, preset.env);
+      applyingExample = false;
+      exampleDirty = false;
+      suggestionsPaused = false;
+      historyView.classList.add("hidden");
+      $("#toggle-history").classList.remove("active");
+      $(".stage-intro").classList.remove("hidden");
+      window.scrollTo(0, 0);
+      openPhase("evaluation", "forward");
+      if (runModelSearch) {
+        const limitInput = $("#model-search-limit") as HTMLInputElement | null;
+        if (limitInput) limitInput.value = String(preset.searchLimit ?? 2);
+        setTimeout(() => ($("#search-models") as HTMLButtonElement | null)?.click(), 80);
+      }
+    }
+  });
 });
 function openHistory(chapterId?: string, returnPhase = activePhase || "language") {
   learningReturnPhase = returnPhase;

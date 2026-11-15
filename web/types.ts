@@ -147,3 +147,15 @@ export type EvaluateResponse = {
   warnings: Warning[];
   result?: EvaluateResult;
 };
+
+export type ModelSearchExample = { interpretation: Interpretation; env: Env };
+export type ModelSearchResponse = {
+  satisfying?: ModelSearchExample;
+  falsifying?: ModelSearchExample;
+  checked: number;
+  evaluated: number;
+  maxDomainSize: number;
+  complete: boolean;
+  limitReached: boolean;
+  errors: LogicError[];
+};

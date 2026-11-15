@@ -83,6 +83,19 @@ func evaluateHandler(writer http.ResponseWriter, request *http.Request) {
 	writeJSON(writer, http.StatusOK, logic.EvaluateFormula(body))
 }
 
+func searchModelsHandler(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")
+		return
+	}
+	var body logic.ModelSearchRequest
+	if err := decodeJSON(request, &body); err != nil {
+		writeAPIError(writer, http.StatusBadRequest, "El cuerpo JSON no es válido.")
+		return
+	}
+	writeJSON(writer, http.StatusOK, logic.SearchModels(body))
+}
+
 func exportEvaluationPDFHandler(writer http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPost {
 		writeAPIError(writer, http.StatusMethodNotAllowed, "Método no permitido. Use POST.")

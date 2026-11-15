@@ -16,6 +16,7 @@ const WASM_METHODS: Record<string, string> = {
   "api/interpretation/validate": "validateInterpretation",
   "api/interpretation/generate": "generateInterpretation",
   "api/evaluate": "evaluate",
+  "api/models/search": "searchModels",
 };
 
 export function getBackendMode(): BackendMode {

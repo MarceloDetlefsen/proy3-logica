@@ -14,7 +14,7 @@
 - [`web/src/language.ts`](../web/src/language.ts): Alta/baja de funciones y predicados; validación con debounce.
 - [`web/src/interpretation.ts`](../web/src/interpretation.ts): Chips del dominio, tablas de funciones totales y relaciones, y botón de generación aleatoria.
 - [`web/src/formula.ts`](../web/src/formula.ts): Editor de fórmula con resaltado de rango de error, barra de inserción en cursor (`¬`, `∧`, `∨`, `→`, `↔`, `∀`, `∃`, `=`, `(`, `)`), selectores de entorno para variables libres y generador de fórmulas aleatorias.
-- [`web/src/evaluation.ts`](../web/src/evaluation.ts): Lista de requisitos bloqueantes, ejecución de `/api/evaluate`, renderizado del árbol de explicación paso a paso y botón de exportación (PDF en modo HTTP, `.tex` en modo WASM).
+- [`web/src/evaluation.ts`](../web/src/evaluation.ts): Lista de requisitos bloqueantes, ejecución de `/api/evaluate`, renderizado del árbol de explicación paso a paso, búsqueda acotada de modelos y contramodelos con `/api/models/search` y botón de exportación (PDF en modo HTTP, `.tex` en modo WASM).
 - [`web/src/app.ts`](../web/src/app.ts): Navegación entre fases, temas Liquid Glass (`grafito`, `medianoche`, `obsidiana`, `tinta`, `papel`), cargador de ejemplos (`examples/*.json`), lecciones y tutorial.
 
 ## Errores y accesibilidad

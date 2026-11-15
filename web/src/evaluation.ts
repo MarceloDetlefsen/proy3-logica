@@ -7,11 +7,15 @@ import {
   currentInterpretation,
 } from "./state.js";
 import { getTransport, isWasmMode } from "./api.js";
+import type { ModelSearchExample, ModelSearchResponse } from "../types.js";
 
 export function createEvaluationUI(actions) {
   const resultHost = $("#result");
   const button = $("#evaluate") as HTMLButtonElement;
   let evaluationSteps: HTMLDetailsElement[] = [];
+  const searchButton = $("#search-models") as HTMLButtonElement;
+  const searchHost = $("#model-search-results");
+  const searchStatus = $("#model-search-status");
   const ruleLabels = {
     pred: "Predicado",
     eq: "Igualdad",
@@ -177,6 +181,60 @@ export function createEvaluationUI(actions) {
     resultHost.append(list);
   }
 
+  function renderSearchExample(label: string, example: ModelSearchExample) {
+    const card = document.createElement("details");
+    card.className = "model-search-result";
+    const heading = document.createElement("summary");
+    heading.textContent = label;
+    card.append(heading);
+    const { interpretation, env } = example;
+    const lines = ["Dominio: {" + interpretation.domain.join(", ") + "}"];
+    for (const [name, entries] of Object.entries(interpretation.funcs)) {
+      for (const entry of entries) lines.push(`${name}(${entry.args.join(", ")}) = ${entry.value}`);
+    }
+    for (const [name, tuples] of Object.entries(interpretation.rels)) {
+      lines.push(`${name} = {${tuples.map((tuple) => `(${tuple.join(", ")})`).join(", ")}}`);
+    }
+    if (Object.keys(env).length) lines.push("Asignación: " + Object.entries(env).map(([variable, value]) => `${variable} = ${value}`).join(", "));
+    const pre = document.createElement("pre");
+    pre.textContent = lines.join("\n");
+    card.append(pre);
+    searchHost.append(card);
+  }
+
+  async function searchModels() {
+    searchButton.disabled = true;
+    searchHost.replaceChildren();
+    searchStatus.textContent = "Enumerando modelos finitos…";
+    try {
+      const input = Number(($<HTMLInputElement>("#model-search-limit")).value);
+      const response = await request("/api/models/search", {
+        language: currentLanguage(),
+        input: ($<HTMLTextAreaElement>("#formula-input")).value,
+        maxDomainSize: input,
+      }) as ModelSearchResponse;
+      if (response.errors?.length) {
+        searchStatus.textContent = response.errors.map((error) => error.message).join(" ");
+        return;
+      }
+      if (response.satisfying) renderSearchExample("Modelo: la fórmula resulta verdadera", response.satisfying);
+      if (response.falsifying) renderSearchExample("Contramodelo: la fórmula resulta falsa", response.falsifying);
+      if (response.satisfying && response.falsifying) {
+        searchStatus.textContent = `Se encontraron un modelo y un contramodelo tras revisar ${response.checked} interpretaciones y evaluar ${response.evaluated} asignaciones (N = ${response.maxDomainSize}).`;
+      } else if (response.complete) {
+        searchStatus.textContent = response.satisfying || response.falsifying
+          ? `Búsqueda exhaustiva hasta N = ${response.maxDomainSize}; se revisaron ${response.checked} interpretaciones (${response.evaluated} asignaciones) y se encontró ${response.satisfying ? "un modelo" : "un contramodelo"}.`
+          : `La búsqueda exhaustiva no encontró modelo ni contramodelo hasta N = ${response.maxDomainSize}.`;
+      } else {
+        searchStatus.textContent = `Búsqueda parcial: se revisaron ${response.checked} interpretaciones y ${response.evaluated} asignaciones hasta N = ${response.maxDomainSize}. ${response.satisfying ? "Se encontró un modelo. " : ""}${response.falsifying ? "Se encontró un contramodelo. " : ""}El límite de búsqueda impidió una conclusión exhaustiva.`;
+      }
+    } catch (error) {
+      searchStatus.textContent = error.message || "No se pudo completar la búsqueda.";
+    } finally {
+      searchButton.disabled = false;
+    }
+  }
+
   async function evaluate() {
     const status = $("#evaluation-status");
     status.textContent = "Evaluando…";
@@ -259,5 +317,6 @@ export function createEvaluationUI(actions) {
   }
 
   button.addEventListener("click", evaluate);
+  searchButton.addEventListener("click", searchModels);
   return { updateButton };
 }

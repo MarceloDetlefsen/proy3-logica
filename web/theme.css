@@ -2115,3 +2115,27 @@ a:focus-visible {
 .pdf-export-controls .muted {
   font-size: 0.78rem;
 }
+.model-search {
+  display: grid;
+  gap: 14px;
+  margin-top: 32px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+.model-search h3 { margin: 5px 0; }
+.model-search-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.model-search-controls .input { width: 100px; }
+.model-search-result {
+  margin-top: 10px;
+  padding: 12px 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.model-search-result pre { overflow-x: auto; white-space: pre-wrap; font: 0.85rem/1.6 ui-monospace, monospace; }
+@media (max-width: 600px) {
+  .model-search { padding: 16px; }
+  .model-search-controls { align-items: stretch; }
+}

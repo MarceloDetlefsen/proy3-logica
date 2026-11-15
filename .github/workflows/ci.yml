@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Pruebas, WASM y documentación
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependencias y compilar frontend
+        run: |
+          npm ci
+          npm run build:web
+
+      - name: Verificar formato Go
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Archivos sin formato gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Ejecutar go vet (nativo y WASM)
+        run: |
+          go vet ./...
+          GOOS=js GOARCH=wasm go vet ./internal/... ./cmd/wasm
+
+      - name: Ejecutar pruebas con detector de carreras
+        run: go test -race ./...
+
+      - name: Compilar y verificar sitio estático WASM
+        run: |
+          ./scripts/build-pages.sh
+          ./scripts/check-pages.sh
+          node scripts/wasm-smoke.mjs
+
+      - name: Verificar enlaces y rutas de documentación
+        run: make docs-check
+
+  docker-smoke:
+    name: Smoke test de Docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Ejecutar smoke test de Docker
+        run: ./scripts/docker-smoke.sh

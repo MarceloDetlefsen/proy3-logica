@@ -11,6 +11,8 @@ required_files=(
   "$DIST_DIR/.nojekyll"
   "$DIST_DIR/build/src/app.js"
   "$DIST_DIR/build/src/worker.js"
+  "$DIST_DIR/history.css"
+  "$DIST_DIR/assets/historia/euclides.jpg"
   "$DIST_DIR/examples/universal-verdadero.json"
 )
 
@@ -22,7 +24,7 @@ for file in "${required_files[@]}"; do
 done
 
 # Verificar que no existan rutas absolutas con "/" en los archivos publicados.
-if grep -rnE '(src|href|fetch)\s*\(?\s*["'\'']/|url\(["'\'']?/' "$DIST_DIR/index.html" "$DIST_DIR/app.css" "$DIST_DIR/theme.css" "$DIST_DIR/build" ; then
+if grep -rnE '(src|href|fetch)\s*\(?\s*["'\'']/|url\(["'\'']?/' "$DIST_DIR/index.html" "$DIST_DIR/app.css" "$DIST_DIR/theme.css" "$DIST_DIR/history.css" "$DIST_DIR/build" ; then
   echo "Error: se encontraron referencias absolutas con '/' en $DIST_DIR." >&2
   exit 1
 fi

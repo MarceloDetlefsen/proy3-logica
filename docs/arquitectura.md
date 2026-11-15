@@ -54,6 +54,7 @@
 - [`analyze.go`](../internal/logic/analyze.go): `AnalyzeFormula` y `freeVariables` calculan variables libres preservando orden de aparición.
 - [`interpretation_validate.go`](../internal/logic/interpretation_validate.go): `ValidateInterpretation` verifica dominio no vacío, completitud de funciones totales, aridades, pertenencia al dominio y relaciones no vacías.
 - [`interpretation_generate.go`](../internal/logic/interpretation_generate.go): `GenerateRandomInterpretation` construye modelos finitos válidos reproducibles mediante `seed`.
+- [`model_search.go`](../internal/logic/model_search.go): `SearchModels` enumera interpretaciones finitas de tamaño `1..N` y entornos para encontrar un modelo y un contramodelo dentro de un presupuesto acotado.
 - [`evaluate.go`](../internal/logic/evaluate.go): `EvaluateFormula` y `evaluationState.eval` implementan la semántica de Tarski, presupuesto de pasos (`MaxEvaluationSteps = 100000`) y árbol de explicación (`maxExplanationNodes = 2000`).
 - [`evaluator_contract.go`](../internal/logic/evaluator_contract.go): Tipos del contrato JSON (`Interpretation`, `Explanation`, `EvaluateRequest`, `EvaluateResponse`) y constantes de límites/códigos de error.
 - [`api_pipeline.go`](../internal/logic/api_pipeline.go): Funciones reutilizables (`ExecuteValidateLanguage`, `ExecuteGenerateInterpretation`) compartidas entre `api.go` y `cmd/wasm/main.go`.
@@ -62,13 +63,15 @@
 
 ### Paquete `cmd/wasm`
 
-- [`cmd/wasm/main.go`](../cmd/wasm/main.go): Compilado con `//go:build js && wasm`; registra `globalThis.proy3Wasm` con los métodos `validateLanguage`, `analyze`, `validateInterpretation`, `generateInterpretation`, `evaluate` y `exportEvaluationTeX`.
+- [`cmd/wasm/main.go`](../cmd/wasm/main.go): Compilado con `//go:build js && wasm`; registra `globalThis.proy3Wasm` con los métodos `validateLanguage`, `analyze`, `validateInterpretation`, `generateInterpretation`, `evaluate`, `searchModels` y `exportEvaluationTeX`.
 
 ### Frontend (`web/`)
 
-- [`web/index.html`](../web/index.html), [`web/app.css`](../web/app.css), [`web/theme.css`](../web/theme.css): Estructura de 4 fases, landing, temas Liquid Glass y barra lateral de resumen.
+- [`web/index.html`](../web/index.html), [`web/app.css`](../web/app.css), [`web/theme.css`](../web/theme.css), [`web/history.css`](../web/history.css): Estructura de 4 fases, landing, temas Liquid Glass, barra lateral y sección **Historia**.
+- [`web/assets/historia/`](../web/assets/historia/CREDITOS.md): Retratos locales optimizados y archivo de créditos para funcionamiento sin conexión.
 - [`web/types.ts`](../web/types.ts): Contratos TypeScript equivalentes a `internal/logic`.
 - [`web/src/api.ts`](../web/src/api.ts): Abstracción `Transport` (`HttpTransport` y `WasmTransport` sobre Web Worker).
 - [`web/src/worker.ts`](../web/src/worker.ts): Web Worker que carga `wasm_exec.js` y `logic.wasm`.
 - [`web/src/state.ts`](../web/src/state.ts): Estado global, modo `?mock=1` y utilidades DOM.
 - [`web/src/language.ts`](../web/src/language.ts), [`web/src/interpretation.ts`](../web/src/interpretation.ts), [`web/src/formula.ts`](../web/src/formula.ts), [`web/src/evaluation.ts`](../web/src/evaluation.ts), [`web/src/app.ts`](../web/src/app.ts): Módulos de UI por fase.
+- [`web/src/history/`](../web/src/history/view.ts): Submódulo de la sección **Historia** (`chapters.ts`, `view.ts`, `logic.ts`, `demos.ts`), validado por [`scripts/history-logic.test.mjs`](../scripts/history-logic.test.mjs) y [`history_assets_test.go`](../history_assets_test.go).

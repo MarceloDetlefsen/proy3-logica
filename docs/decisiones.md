@@ -58,3 +58,10 @@
 
 - **Decisión:** En GitHub Pages, `logic.wasm` corre dentro de un `Worker` dedicado con timeout de 10 s; la exportación descarga el `.tex` y explica que el PDF requiere el servidor Docker.
 - **Justificación:** Evita congelar el hilo principal de la UI durante evaluaciones pesadas y permite abortar/reiniciar el worker si se excede el tiempo. `pdflatex` requiere binarios nativos del sistema operativo imposibles de ejecutar en un sitio estático de GitHub Pages.
+
+## 11. Búsqueda finita de modelos y contramodelos (`SearchModels`)
+
+- **Decisión:** `SearchModels` ([`internal/logic/model_search.go`](../internal/logic/model_search.go)) busca modelos y contramodelos enumerando dominios crecientes de tamaño `1` hasta `maxDomainSize` ($1 \le N \le 100$), con cotas `MaxSearchedInterpretations = 2000`, `MaxSearchedEvaluations = 5000` y `maxSearchTableEntries = 128` por tabla. Para cada tamaño genera las funciones totales mediante producto cartesiano (`enumerateFunctions`), las relaciones no vacías mediante máscaras de subconjuntos no vacíos (`enumerateRelations`) y los entornos de variables libres (`enumerateEnvs`).
+- **Ruptura de simetrías:** No se implementa ruptura de simetría (isomorfismos entre permutaciones de elementos del dominio); cada tabla distinta sobre `d0..d(n-1)` se enumera explícitamente en orden lexicográfico. Esto mantiene el código simple y determinista, a costa de repetir interpretaciones isomorfas cuando $|D| \ge 2$.
+- **Alcance lógico (no prueba validez):** La búsqueda **no demuestra validez ni insatisfacibilidad general**. Que no se encuentre un contramodelo (o un modelo) hasta tamaño $N$ solo significa que no existe en dominios finitos de tamaño $\le N$ dentro del presupuesto explorado (`complete: true` si no se alcanzó el tope); existen fórmulas falsables únicamente en dominios más grandes o infinitos (teorema de Trakhtenbrot / indecidibilidad de primer orden).
+- **Alternativa descartada:** Enumeración ilimitada o traducción a un solver SMT externo, lo cual violaría el requisito de cero dependencias externas en `go.mod` y bloquearía el navegador en WASM.

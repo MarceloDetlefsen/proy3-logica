@@ -4,6 +4,7 @@ node_modules
 web/build
 dist
 docs
+e2e
 *.test
 *.out
 *.pdf

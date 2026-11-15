@@ -215,3 +215,26 @@ func TestListenAddress(t *testing.T) {
 		t.Fatalf("ADDR listenAddress: want 0.0.0.0:7070, got %q", got)
 	}
 }
+
+func TestSearchModelsAPI(t *testing.T) {
+	server := newServer()
+	body := `{"language":{"funcs":{},"preds":{"P":1}},"input":"∀x P(x)","maxDomainSize":2}`
+	req := httptest.NewRequest(http.MethodPost, "/api/models/search", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST /api/models/search: want 200, got %d; body=%s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Errors     []struct{ Code string } `json:"errors"`
+		Complete   bool                    `json:"complete"`
+		Satisfying any                     `json:"satisfying"`
+		Falsifying any                     `json:"falsifying"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Errors) != 0 || !resp.Complete || resp.Satisfying == nil || resp.Falsifying == nil {
+		t.Fatalf("unexpected search response: %#v", resp)
+	}
+}

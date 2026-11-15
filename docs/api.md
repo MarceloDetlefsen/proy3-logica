@@ -87,6 +87,25 @@ curl -s -X POST http://localhost:8080/api/evaluate \
   -d '{"language":{"funcs":{},"preds":{"P":1}},"input":"∀x P(x)","interpretation":{"domain":["a","b"],"funcs":{},"rels":{"P":[["a"],["b"]]}},"env":{}}'
 ```
 
+## `POST /api/models/search`
+
+Enumera interpretaciones finitas con dominios de tamaño `1` hasta `maxDomainSize` ($1 \le N \le 100$, por defecto `3` si se omite o es `0`) buscando un modelo que satisfaga la fórmula (`satisfying`) y un contramodelo que la falsee (`falsifying`), dentro del presupuesto de `MaxSearchedInterpretations = 2000`, `MaxSearchedEvaluations = 5000` y `maxSearchTableEntries = 128` entradas por tabla.
+
+```bash
+curl -s -X POST http://localhost:8080/api/models/search \
+  -H "Content-Type: application/json" \
+  -d '{"language":{"funcs":{},"preds":{"P":1}},"input":"∀x P(x)","maxDomainSize":2}'
+```
+
+Campos de la respuesta `200 OK`:
+- `satisfying` / `falsifying`: objetos `{domainSize, interpretation, env, evaluation}` (o `null` si no se hallaron).
+- `checked`: número de interpretaciones candidatas enumeradas.
+- `evaluated`: número de evaluaciones `(interpretación, entorno)` ejecutadas.
+- `maxDomainSize`: tope `N` aplicado.
+- `complete`: `true` si se exploró todo el espacio hasta `N` sin agotar el presupuesto.
+- `limitReached`: `true` si se alcanzó `MaxSearchedInterpretations`, `MaxSearchedEvaluations` o `maxSearchTableEntries`.
+- `errors`: lista de `LogicError` (por ejemplo `DOMAIN_SIZE_INVALID` si `maxDomainSize < 0` o `> 100`, además de errores de lenguaje o sintaxis).
+
 ## `POST /api/evaluate/export/pdf`
 
 Recibe el mismo cuerpo que `/api/evaluate`, revalida y evalúa, genera el `.tex` y lo compila con `pdflatex`.

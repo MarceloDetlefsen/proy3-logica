@@ -82,5 +82,22 @@ function evalPayload(example) {
   assert.ok(typeof res.tex === "string" && res.tex.includes("\\documentclass[11pt]{article}"));
 }
 
+// 6. Búsqueda de modelos y contramodelos en WASM
+{
+  const res = JSON.parse(
+    wasm.searchModels(
+      JSON.stringify({
+        language: { funcs: {}, preds: { P: 1 } },
+        input: "∀x P(x)",
+        maxDomainSize: 2,
+      }),
+    ),
+  );
+  assert.equal(res.errors.length, 0);
+  assert.equal(res.complete, true);
+  assert.ok(res.satisfying, "se esperaba modelo");
+  assert.ok(res.falsifying, "se esperaba contramodelo");
+}
+
 console.log("wasm-smoke: todos los casos verificados correctamente.");
 process.exit(0);

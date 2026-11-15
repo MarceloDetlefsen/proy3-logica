@@ -78,6 +78,8 @@ Abrir <http://localhost:8081>.
 go test ./...
 go test -run=^$ -bench . -benchmem -count 5 ./...
 make docs-check
+make e2e          # Suite visual, de comportamiento y accesibilidad rápida (@fast)
+make e2e-full     # Matriz completa: servidor + Pages (WASM), 7 viewports, 2 temas y reduced-motion
 ```
 
 Más detalle: [docs/despliegue.md](docs/despliegue.md) · [docs/rendimiento.md](docs/rendimiento.md)
@@ -98,6 +100,10 @@ Más detalle: [docs/despliegue.md](docs/despliegue.md) · [docs/rendimiento.md](
 | `<->`, `<=>` | Aliases ASCII de bicondicional (`↔`) |
 | `forall`, `exists` | Aliases ASCII de cuantificadores (`∀`, `∃`, sin distinguir mayúsculas) |
 | `Enter` en campo de dominio | Agrega el elemento al dominio finito |
+| **Limpiar todo** (`#clear-language`) | Reinicia lenguaje, interpretación, fórmula y resultados desde cero |
+| Menú lateral (`Aprender`, `Ejemplos`, divisor `Extra` → `Historia`) | Abre vistas auxiliares mutuamente excluyentes; `Historia` activa modo enfoque |
+| Hashes (`#aprender`, `#ejemplos`, `#historia`, `#historia/9`) | Enlaces directos y navegación con botón Atrás del navegador |
+| Tiradores laterales / bordes (`24 px`) en **Historia** | Muestran u ocultan las barras laterales como paneles flotantes superpuestos |
 
 ### Flujo de uso en 4 pasos
 
@@ -115,6 +121,7 @@ Más detalle: [docs/despliegue.md](docs/despliegue.md) · [docs/rendimiento.md](
 - `POST /api/interpretation/generate`
 - `POST /api/evaluate`
 - `POST /api/evaluate/export/pdf`
+- `POST /api/models/search`
 
 Más detalle: [docs/api.md](docs/api.md) · [docs/parser.md](docs/parser.md)
 
@@ -252,11 +259,25 @@ Contenedor multi-stage endurecido con TeX Live ([`Dockerfile`](Dockerfile), [`do
 
 Más detalle: [docs/despliegue.md](docs/despliegue.md)
 
+### Búsqueda de modelos y contramodelos
+
+Enumera interpretaciones finitas con dominios de tamaño `1` hasta `N` (`1 <= N <= 100`) y entornos de variables libres para hallar un modelo que satisfaga la fórmula y un contramodelo que la refuta (`SearchModels` en [`internal/logic/model_search.go`](internal/logic/model_search.go), UI en [`web/src/evaluation.ts`](web/src/evaluation.ts), disponible tanto en servidor HTTP como en WebAssembly).
+
+| Parámetro o constante | Qué cambia |
+| --- | --- |
+| `MaxSearchedInterpretations = 2000` | Máximo de interpretaciones candidatas enumeradas |
+| `MaxSearchedEvaluations = 5000` | Máximo de evaluaciones (modelo + entorno) por búsqueda |
+| `maxSearchTableEntries = 128` | Tamaño máximo de tabla permitido durante la enumeración |
+
 ### Aportes creativos adicionales
 
-Incluye igualdad lógica integrada (`=`), modo educativo de 6 lecciones, tutorial de 6 pasos, 5 temas visuales y modo `?mock=1`.
+Incluye igualdad lógica integrada (`=`), guía práctica **Aprender** de 6 lecciones alineadas a las 4 fases ([docs/aprender.md](docs/aprender.md)), tutorial de 6 pasos, 5 temas visuales, modo `?mock=1` y la sección interactiva **Historia: de Euclides a Turing** (11 capítulos con retratos locales en [`web/assets/historia/`](web/assets/historia/CREDITOS.md), animaciones de diagonalización, cálculo lambda, máquina de Turing, planeador de Conway, codificador de Gödel con `BigInt` y presets conectados al evaluador y al buscador de modelos).
 
-Más detalle: [docs/creativos.md](docs/creativos.md)
+![Sección Historia: línea de tiempo y narrativa](docs/captures/historia.png)
+![Sección Historia: codificación de Gödel y demos interactivas](docs/captures/historia-godel.png)
+**Evidencia:** `docs/captures/historia.png`, `docs/captures/historia-godel.png`
+
+Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/creativos.md)
 
 ---
 
@@ -268,7 +289,7 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 | Análisis sintáctico | 10 | ✅ | Lexer, parser y análisis | `internal/logic/parser.go` (`ParseFormula`), `analyze.go` | `isReservedName` |
 | Interfaz gráfica | 10 | ✅ | UI 4 fases y controles | `web/src/app.ts`, `formula.ts`, `evaluation.ts` | `DEFAULT_WASM_TIMEOUT_MS` |
 | Defensa individual | 30 | — | Calificada por el docente | Guía en [`docs/defensa.md`](docs/defensa.md) | — |
-| Aportes creativos (creatividad 5, valor 6, calidad 6, defensa 3) | 20 | — | Calificados por el docente | Inventario en [`docs/creativos.md`](docs/creativos.md) | — |
+| Aportes creativos (incluye buscador de modelos y contramodelos) | 20 | — | Calificados por el docente | Inventario en [`docs/creativos.md`](docs/creativos.md) | `MaxSearchedInterpretations`, `MaxSearchedEvaluations` |
 
 ---
 
@@ -288,80 +309,18 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 
 ```text
 .
-├── .dockerignore                         # Exclusiones del contexto de compilación Docker
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                        # Pruebas Go/WASM, docs-check y smoke test Docker
-│       ├── docker.yml                    # Publicación de imagen en GHCR (main y tags v*)
-│       └── pages.yml                     # Despliegue estático en GitHub Pages
-├── Dockerfile                            # Build multi-stage (Node + Go estático + TeX Live)
-├── Makefile                              # Atajos: run, test, bench, pages, verify-pages, docker-*, docs-check
-├── README.md                             # Documentación principal del proyecto
-├── api.go                                # Handlers HTTP de /api/*
-├── api_test.go                           # Pruebas de integración HTTP y /healthz
-├── cmd/
-│   └── wasm/
-│       └── main.go                       # Punto de entrada WebAssembly (//go:build js && wasm)
-├── docker-compose.yml                    # Servicio endurecido (read_only, tmpfs, cap_drop)
-├── docs/
-│   ├── README.md                         # Índice de estudio y orden de lectura
-│   ├── arquitectura.md                   # Pipeline, paquetes y contrato Go/TypeScript
-│   ├── contrato-evaluador.md             # Especificación JSON compartida entre Go y TS
-│   ├── creativos.md                      # Aportes creativos y rúbrica
-│   ├── defensa.md                        # Banco de preguntas por módulo y guion de 3 min
-│   ├── despliegue.md                     # Modos local, Docker y GitHub Pages (WASM)
-│   ├── evaluador.md                      # Semántica de Tarski, errores y ejemplos a mano
-│   ├── explicacion.md                    # Construcción de testigos, contraejemplos y recorte
-│   ├── exportacion-pdf.md                # Plantilla LaTeX, paquetes TeX y endurecimiento
-│   ├── parser.md                         # Gramática, precedencia, aliases y offsets en runes
-│   ├── rendimiento.md                    # Benchmarks con testing.B y límites observados
-│   └── captures/                         # Capturas reales de la interfaz enlazadas en el README
-├── docs_test.go                          # Verificación automática de enlaces y rutas en docs
-├── export_pdf.go                         # Invocación segura de pdflatex con timeout y -no-shell-escape
-├── export_pdf_bench_test.go              # Benchmark de generación .tex
-├── go.mod                                # Módulo Go 1.27 (cero dependencias externas)
-├── internal/
-│   └── logic/
-│       ├── analyze.go                    # Análisis de fórmula y cálculo de variables libres
-│       ├── api_pipeline.go               # Lógica compartida entre HTTP y WASM
-│       ├── ast.go                        # Nodos Term y Formula y serialización JSON
-│       ├── errors.go                     # Códigos y estructura LogicError
-│       ├── evaluate.go                   # Evaluador de Tarski, presupuesto y árbol Explanation
-│       ├── evaluator_contract.go         # Contrato JSON y límites (MaxDomainSize, MaxTableEntries)
-│       ├── interpretation_generate.go    # Generación aleatoria reproducible por semilla
-│       ├── interpretation_validate.go    # Validación de dominio, funciones totales y relaciones
-│       ├── language.go                   # Validación de nombres, aridades y palabras reservadas
-│       ├── lexer.go                      # Tokenizador Unicode/ASCII con offsets en runes
-│       ├── logic_bench_test.go           # Benchmarks de parser, evaluador, explicación y generación
-│       ├── parser.go                     # Parser por descenso recursivo con alcance fuerte
-│       └── tex.go                        # Generación pura en Go del documento LaTeX (.tex)
-├── main.go                               # Servidor HTTP embebido, /healthz y flag -healthcheck
-├── package.json                          # Script build:web (tsc -p web/tsconfig.json)
-├── scripts/
-│   ├── build-pages.sh                    # Genera dist/ (TS + logic.wasm + wasm_exec.js + config.js)
-│   ├── check-pages.sh                    # Verifica rutas relativas y archivos obligatorios en dist/
-│   ├── docker-smoke.sh                   # Levanta el contenedor y valida /healthz, evaluación y %PDF
-│   ├── verify-pages.sh                   # Verificación unificada de WASM para ci.yml y pages.yml
-│   └── wasm-smoke.mjs                    # Prueba logic.wasm en Node con fixtures de testdata/
-├── testdata/
-│   └── examples/                         # 18 fixtures JSON válidos e inválidos (ej. universal-verdadero.json)
-├── types.go                              # Tipos heredados sin uso activo (código muerto)
-└── web/
-    ├── index.html                        # Estructura de las 4 fases, ejemplos, lecciones y tutorial
-    ├── app.css                           # Estilos de componentes y disposición
-    ├── theme.css                         # Sistema visual Liquid Glass y 5 temas
-    ├── config.js                         # Selección de backend ("http" por defecto; "wasm" en Pages)
-    ├── types.ts                          # Tipos TypeScript espejados de internal/logic
-    ├── tsconfig.json                     # Configuración de TypeScript (ES2022)
-    └── src/
-        ├── api.ts                        # Transporte común HttpTransport / WasmTransport
-        ├── app.ts                        # Navegación de fases, ejemplos, temas y tutorial
-        ├── evaluation.ts                 # Evaluación, árbol paso a paso y exportación PDF/.tex
-        ├── formula.ts                    # Editor, inserción de símbolos, entorno y fórmula aleatoria
-        ├── interpretation.ts             # Dominio en chips, tablas y modelo aleatorio
-        ├── language.ts                   # Alta/baja de funciones y predicados
-        ├── state.ts                      # Estado global, debounce y modo ?mock=1
-        └── worker.ts                     # Web Worker que carga wasm_exec.js y logic.wasm
+├── .github/workflows/                    # CI (Go/WASM/Docker), publicación GHCR y GitHub Pages
+├── cmd/wasm/main.go                      # Punto de entrada WebAssembly (//go:build js && wasm)
+├── docs/                                 # Documentación técnica (ver docs/README.md) y captures/
+├── e2e/                                  # Suite Playwright (visual, comportamiento, a11y) y captures.mjs
+├── internal/logic/                       # Motor puro en Go: lexer, parser, analizador, evaluador, LaTeX y buscador
+├── scripts/                              # Build/verificación de Pages, WASM smoke, Docker smoke y tests JS
+├── testdata/examples/                    # 18 fixtures JSON válidos e inválidos (ej. universal-verdadero.json)
+├── web/                                  # Interfaz TypeScript vanilla, estilos Liquid Glass, assets y worker WASM
+├── main.go · api.go · export_pdf.go      # Servidor HTTP embebido, endpoints /api/* y exportación PDF con pdflatex
+├── *_test.go                             # Pruebas HTTP, docs_test.go, history_assets_test.go y learn_constants_test.go
+├── Dockerfile · docker-compose.yml       # Contenedor multi-stage endurecido con TeX Live
+└── Makefile · go.mod · package.json      # Atajos de build/pruebas, módulo Go 1.27 y tsc (build:web)
 ```
 
 ---
@@ -370,6 +329,7 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 
 - **Costo exponencial de cuantificadores anidados:** Evaluar $k$ cuantificadores sobre $D$ cuesta $O(|D|^k)$ en el peor caso, acotado por `MaxEvaluationSteps = 100000`.
 - **Límites de tablas y dominio:** `MaxDomainSize = 100` y `MaxTableEntries = 10000` (y `maxExplanationNodes = 2000` nodos visuales).
+- **Búsqueda acotada de modelos (sin prueba de validez):** `SearchModels` está limitado a `MaxSearchedInterpretations = 2000`, `MaxSearchedEvaluations = 5000` y `maxSearchTableEntries = 128` sin ruptura de simetrías; no encontrar un contramodelo hasta tamaño $N$ **no** demuestra validez general.
 - **PDF solo en servidor o Docker:** GitHub Pages es estático y descarga el `.tex` en lugar de compilar el PDF.
 - **Timeout en navegador:** El Web Worker aborta operaciones WASM que superen 10 s.
 - **Doble subíndice en LaTeX:** Identificadores válidos con más de un guion bajo no inicial (ej. `x_1_2`) provocan error `Double subscript` al compilar con `pdflatex`.

@@ -1,14 +1,61 @@
-import { $$, $, state } from "./state.js";
+import { $$, $, escapeHTML, state } from "./state.js";
 import { createLanguageUI } from "./language.js";
 import { createInterpretationUI } from "./interpretation.js";
 import { createFormulaUI } from "./formula.js";
 import { createEvaluationUI } from "./evaluation.js";
+import { createHistoryUI } from "./history/view.js";
+import { attachHistoryDemos } from "./history/demos.js";
+import { LEARN_LESSONS } from "./learn/lessons.js";
+import {
+  closeAuxView,
+  createInitialNavState,
+  formatHash,
+  openAuxView,
+  parseHash,
+  setPhase,
+  type NavState,
+  type PhaseId,
+} from "./navigation.js";
 
 const actions = {};
 const interpretation = createInterpretationUI(actions);
 const formula = createFormulaUI(actions);
 const evaluation = createEvaluationUI(actions);
-Object.assign(actions, { renderTables: interpretation.renderTables, validateInterpretation: interpretation.validate, analyze: formula.analyze, updateEvaluate: evaluation.updateButton });
+Object.assign(actions, {
+  renderTables: interpretation.renderTables,
+  validateInterpretation: interpretation.validate,
+  analyze: formula.analyze,
+  updateEvaluate: evaluation.updateButton,
+  resetWorkspace() {
+    state.example = null;
+    exampleDirty = false;
+    state.domain = [];
+    state.funcRows = {};
+    state.relRows = {};
+    state.interpValid = false;
+    state.interpErrors = [];
+    state.env = {};
+    state.analysis = null;
+    state.formulaValid = false;
+    ($("#domain-input") as HTMLInputElement).value = "";
+    $("#generation-status").textContent = "";
+    $("#interpretation-status").replaceChildren();
+    ($("#formula-input") as HTMLTextAreaElement).value = "";
+    $("#formula-highlight").textContent = "";
+    $("#formula-status").replaceChildren();
+    $("#formula-generation-status").textContent = "";
+    $("#free-vars").replaceChildren();
+    $("#evaluation-status").textContent = "";
+    $("#result").replaceChildren();
+    $("#model-search-status").textContent = "";
+    $("#model-search-results").replaceChildren();
+    $("#example-description").textContent = "";
+    interpretation.renderDomain();
+    formula.analyze();
+    evaluation.updateButton();
+    updateSummary();
+  }
+});
 const language = createLanguageUI(actions);
 interpretation.renderDomain();
 
@@ -72,9 +119,26 @@ async function loadExample(name: string) {
     applyingExample = false;
     exampleDirty = false;
     $("#example-description").textContent = state.example.description;
-    examplesPanel.classList.add("hidden");
     window.scrollTo(0, 0);
-    openPhase("evaluation", "forward");
+    applyNavState(setPhase(navState, "evaluation"), true, "forward", false);
+    $("#evaluation-status").textContent =
+      "Ejemplo cargado: " + (exampleMeta[name]?.[0] || name) + ".";
+    let focusedOnce = false;
+    const focusEvaluateWhenReady = (attempts = 40) => {
+      evaluation.updateButton();
+      const btn = $("#evaluate") as HTMLButtonElement | null;
+      if (btn && !btn.disabled && navState.phase === "evaluation" && !navState.auxView) {
+        if (!focusedOnce || document.activeElement === document.body || document.activeElement === null) {
+          btn.focus();
+          focusedOnce = document.activeElement === btn;
+        }
+        if (focusedOnce && attempts <= 34) return;
+      }
+      if (attempts > 0) {
+        setTimeout(() => focusEvaluateWhenReady(attempts - 1), 80);
+      }
+    };
+    setTimeout(() => focusEvaluateWhenReady(), 80);
   } catch (error) {
     $("#example-description").textContent = error.message;
   } finally {
@@ -101,42 +165,220 @@ let transitionToken = 0;
 let learningReturnPhase = "language";
 let landingReturnPhase = "language";
 const learningView = $("#learning-view");
+const historyView = $("#history-view");
 const lessonContent = $("#lesson-content");
 const contextHelp = $("#context-help");
 const landing = $("#landing");
 const evaluatorWorkspace = $("#evaluator-workspace");
-function openPhase(id: string, direction = "forward") {
-  if (!phaseInfo[id] || id === activePhase && document.querySelector(".phase-panel.active")) return;
-  const token = ++transitionToken;
-  activePhase = id;
-  learningView.classList.add("hidden");
-  $("#examples-panel").classList.add("hidden");
-  $(".stage-intro").classList.remove("hidden");
-  const panel = $("#" + id);
-  $$(".phase-panel").forEach((item) => item.classList.remove("active", "enter-forward", "enter-back"));
-  panel.classList.add(direction === "back" ? "enter-back" : "enter-forward");
-  panel.classList.add("active");
-  $$(".step-link").forEach((link) => link.classList.toggle("active", (link as HTMLElement).dataset.phase === id));
-  const info = phaseInfo[id];
-  $("#phase-label").textContent = info[0]; $("#stage-title").textContent = info[1]; $("#stage-description").textContent = info[2];
-  history.replaceState(null, "", "#" + id);
-  updateSummary();
-  requestAnimationFrame(() => {
-    if (token !== transitionToken) return;
-    panel.focus({ preventScroll: true });
+let navState: NavState = createInitialNavState("language");
+const sidebarEl = $("#evaluator-sidebar") as HTMLElement & { inert: boolean };
+const modelRailEl = $("#model-rail") as HTMLElement & { inert: boolean };
+const focusHandleLeft = $("#focus-handle-left") as HTMLButtonElement;
+const focusHandleRight = $("#focus-handle-right") as HTMLButtonElement;
+const focusEdgeLeft = $("#focus-edge-left") as HTMLElement;
+const focusEdgeRight = $("#focus-edge-right") as HTMLElement;
+let leftPeek = false;
+let rightPeek = false;
+let leftOpenTimer: number | null = null;
+let leftCloseTimer: number | null = null;
+let rightOpenTimer: number | null = null;
+let rightCloseTimer: number | null = null;
+
+function syncFocusPanelTop() {
+  const topbar = document.querySelector(".topbar");
+  const bottom = topbar ? Math.ceil(topbar.getBoundingClientRect().bottom) : 84;
+  const topPx = Math.max(16, bottom + 10);
+  evaluatorWorkspace.style.setProperty("--focus-panel-top", `${topPx}px`);
+}
+
+function syncFocusSidebars() {
+  const focus = navState.focusMode;
+  if (focus) syncFocusPanelTop();
+  evaluatorWorkspace.classList.toggle("history-focus", focus);
+  focusHandleLeft.classList.toggle("hidden", !focus);
+  focusHandleRight.classList.add("hidden");
+  focusEdgeRight.classList.add("hidden");
+  if (!focus) {
+    leftPeek = false;
+    rightPeek = false;
+    evaluatorWorkspace.classList.remove("left-peek-open");
+    sidebarEl.classList.remove("is-peek");
+    modelRailEl.classList.remove("is-peek");
+    sidebarEl.inert = false;
+    modelRailEl.inert = false;
+    focusHandleLeft.setAttribute("aria-expanded", "false");
+    focusHandleRight.setAttribute("aria-expanded", "false");
+    const menuBtn = document.getElementById("history-toggle-menu");
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
+    return;
+  }
+  const leftOpen = leftPeek || sidebarEl.matches(":focus-within");
+  rightPeek = false;
+  evaluatorWorkspace.classList.toggle("left-peek-open", leftOpen);
+  sidebarEl.classList.toggle("is-peek", leftPeek);
+  modelRailEl.classList.remove("is-peek");
+  sidebarEl.inert = !leftOpen;
+  modelRailEl.inert = true;
+  focusHandleLeft.setAttribute("aria-expanded", String(leftOpen));
+  focusHandleRight.setAttribute("aria-expanded", "false");
+  const menuBtn = document.getElementById("history-toggle-menu");
+  if (menuBtn) menuBtn.setAttribute("aria-expanded", String(leftOpen));
+}
+
+function setPeek(side: "left" | "right", open: boolean) {
+  if (side === "left") leftPeek = open;
+  else rightPeek = open;
+  syncFocusSidebars();
+}
+
+function wireEdgePeek(
+  side: "left" | "right",
+  edge: HTMLElement,
+  panel: HTMLElement,
+) {
+  const clearTimers = () => {
+    if (side === "left") {
+      if (leftOpenTimer !== null) { clearTimeout(leftOpenTimer); leftOpenTimer = null; }
+      if (leftCloseTimer !== null) { clearTimeout(leftCloseTimer); leftCloseTimer = null; }
+    } else {
+      if (rightOpenTimer !== null) { clearTimeout(rightOpenTimer); rightOpenTimer = null; }
+      if (rightCloseTimer !== null) { clearTimeout(rightCloseTimer); rightCloseTimer = null; }
+    }
+  };
+  const scheduleOpen = () => {
+    if (!navState.focusMode) return;
+    clearTimers();
+    const id = window.setTimeout(() => setPeek(side, true), 120);
+    if (side === "left") leftOpenTimer = id; else rightOpenTimer = id;
+  };
+  const scheduleClose = () => {
+    if (!navState.focusMode) return;
+    clearTimers();
+    const id = window.setTimeout(() => setPeek(side, false), 300);
+    if (side === "left") leftCloseTimer = id; else rightCloseTimer = id;
+  };
+  edge.addEventListener("mouseenter", scheduleOpen);
+  edge.addEventListener("mouseleave", scheduleClose);
+  panel.addEventListener("mouseenter", () => {
+    if (navState.focusMode) clearTimers();
   });
+  panel.addEventListener("mouseleave", scheduleClose);
+  panel.addEventListener("focusout", () => {
+    if (navState.focusMode) requestAnimationFrame(syncFocusSidebars);
+  });
+}
+
+wireEdgePeek("left", focusEdgeLeft, sidebarEl);
+wireEdgePeek("right", focusEdgeRight, modelRailEl);
+
+let pointerDownOnHandle = false;
+focusHandleLeft.addEventListener("pointerdown", () => { pointerDownOnHandle = true; });
+focusHandleRight.addEventListener("pointerdown", () => { pointerDownOnHandle = true; });
+window.addEventListener("pointerup", () => { pointerDownOnHandle = false; });
+window.addEventListener("resize", () => { if (navState.focusMode) syncFocusPanelTop(); });
+window.addEventListener("scroll", () => { if (navState.focusMode) syncFocusPanelTop(); }, { passive: true });
+
+focusHandleLeft.addEventListener("focus", () => {
+  if (navState.focusMode && !pointerDownOnHandle) setPeek("left", true);
+});
+focusHandleRight.addEventListener("focus", () => {
+  if (navState.focusMode && !pointerDownOnHandle) setPeek("right", true);
+});
+
+focusHandleLeft.addEventListener("click", () => {
+  pointerDownOnHandle = false;
+  setPeek("left", !leftPeek);
+  if (leftPeek) (sidebarEl.querySelector("a, button") as HTMLElement | null)?.focus();
+});
+focusHandleRight.addEventListener("click", () => {
+  pointerDownOnHandle = false;
+  setPeek("right", !rightPeek);
+});
+
+function applyNavState(next: NavState, updateUrl = true, direction = "forward", focusPhasePanel = true) {
+  const prevAux = navState.auxView;
+  const prevPhase = navState.phase;
+  navState = next;
+  activePhase = next.phase;
+
+  const isLearn = next.auxView === "aprender";
+  const isExamples = next.auxView === "ejemplos";
+  const isHistory = next.auxView === "historia";
+
+  suggestionsPaused = next.auxView !== null;
+  if (next.auxView !== null) clearContextHelp();
+
+  learningView.classList.toggle("hidden", !isLearn);
+  examplesPanel.classList.toggle("hidden", !isExamples);
+  historyView.classList.toggle("hidden", !isHistory);
+
+  const learnBtn = $("#toggle-learn");
+  const examplesBtn = $("#toggle-examples");
+  const historyBtn = $("#toggle-history");
+  learnBtn.classList.toggle("active", isLearn);
+  examplesBtn.classList.toggle("active", isExamples);
+  historyBtn.classList.toggle("active", isHistory);
+  learnBtn.setAttribute("aria-current", isLearn ? "page" : "false");
+  examplesBtn.setAttribute("aria-current", isExamples ? "page" : "false");
+  historyBtn.setAttribute("aria-current", isHistory ? "page" : "false");
+
+  if (isLearn || isHistory) {
+    $(".stage-intro").classList.add("hidden");
+    $$(".phase-panel").forEach((p) => p.classList.remove("active", "enter-forward", "enter-back"));
+  } else {
+    $(".stage-intro").classList.remove("hidden");
+    const panel = $("#" + next.phase);
+    const shouldAnimatePhase = prevAux !== null || prevPhase !== next.phase || !panel.classList.contains("active");
+    if (shouldAnimatePhase) {
+      $$(".phase-panel").forEach((item) => item.classList.remove("active", "enter-forward", "enter-back"));
+      panel.classList.add(direction === "back" ? "enter-back" : "enter-forward");
+      panel.classList.add("active");
+    }
+    $$(".step-link").forEach((link) => link.classList.toggle("active", (link as HTMLElement).dataset.phase === next.phase));
+    const info = phaseInfo[next.phase];
+    $("#phase-label").textContent = info[0];
+    $("#stage-title").textContent = info[1];
+    $("#stage-description").textContent = info[2];
+    if (focusPhasePanel && next.auxView === null && shouldAnimatePhase) {
+      const token = ++transitionToken;
+      requestAnimationFrame(() => {
+        if (token !== transitionToken) return;
+        panel.focus({ preventScroll: true });
+      });
+    }
+  }
+
+  if (isExamples) {
+    examplesPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (isHistory) {
+    historyUI.open(next.historyChapter ?? undefined);
+  }
+  syncFocusSidebars();
+  updateSummary();
+
+  if (updateUrl) {
+    const targetHash = formatHash(navState);
+    if (location.hash !== targetHash) {
+      history.replaceState(null, "", targetHash);
+    }
+  }
+}
+
+function openPhase(id: string, direction = "forward") {
+  if (!phaseInfo[id]) return;
+  applyNavState(setPhase(navState, id as PhaseId), true, direction, true);
 }
 function enterEvaluator(updateUrl = true) {
   landing.classList.add("hidden");
   evaluatorWorkspace.classList.remove("hidden");
-  const targetPhase = phaseInfo[location.hash.slice(1)] ? location.hash.slice(1) : landingReturnPhase;
-  if (updateUrl && !location.hash) history.replaceState(null, "", "#" + targetPhase);
-  activePhase = "";
-  openPhase(targetPhase);
+  const parsed = location.hash ? parseHash(location.hash, landingReturnPhase as PhaseId) : createInitialNavState(landingReturnPhase as PhaseId);
+  applyNavState(parsed, updateUrl, "forward", true);
   try { if (!localStorage.getItem("parcial3-tutorial-v2")) setTimeout(showTutorial, 450); } catch { setTimeout(showTutorial, 450); }
 }
 function showLanding() {
-  landingReturnPhase = phaseInfo[activePhase] ? activePhase : landingReturnPhase;
+  landingReturnPhase = navState.phase;
+  applyNavState(closeAuxView(navState), false, "back", false);
   closeAppearance();
   evaluatorWorkspace.classList.add("hidden");
   landing.classList.remove("hidden");
@@ -149,18 +391,29 @@ $("#enter-evaluator").addEventListener("click", () => enterEvaluator());
 $$(".step-link").forEach((link) => link.addEventListener("click", (event) => {
   event.preventDefault();
   const next = (link as HTMLElement).dataset.phase || "language";
-  openPhase(next, phaseOrder.indexOf(next) >= phaseOrder.indexOf(activePhase) ? "forward" : "back");
+  openPhase(next, phaseOrder.indexOf(next) >= phaseOrder.indexOf(navState.phase) ? "forward" : "back");
 }));
-$$<HTMLElement>("[data-next-phase]").forEach((button) => button.addEventListener("click", () => { recordHelpAttempt(activePhase); openPhase(button.dataset.nextPhase || "language", "forward"); }));
+$$<HTMLElement>("[data-next-phase]").forEach((button) => button.addEventListener("click", () => { recordHelpAttempt(navState.phase); openPhase(button.dataset.nextPhase || "language", "forward"); }));
 $$("[data-prev-phase]").forEach((button) => button.addEventListener("click", () => {
   const previous = (button as HTMLElement).dataset.prevPhase;
   if (previous) openPhase(previous, "back");
 }));
 $("#toggle-examples").addEventListener("click", () => {
-  examplesPanel.classList.toggle("hidden");
-  if (!examplesPanel.classList.contains("hidden")) examplesPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (navState.auxView === "ejemplos") {
+    applyNavState(closeAuxView(navState), true, "back", true);
+  } else {
+    applyNavState(openAuxView(navState, "ejemplos"), true, "forward", false);
+  }
 });
-$("#close-examples").addEventListener("click", () => examplesPanel.classList.add("hidden"));
+$("#close-examples").addEventListener("click", () => applyNavState(closeAuxView(navState), true, "back", true));
+window.addEventListener("hashchange", () => {
+  if (evaluatorWorkspace.classList.contains("hidden") && location.hash) {
+    enterEvaluator(false);
+    return;
+  }
+  const parsed = parseHash(location.hash, navState.phase);
+  applyNavState(parsed, false, "forward", false);
+});
 
 function updateSummary() {
   const domain = $("#summary-domain"); domain.replaceChildren();
@@ -218,14 +471,6 @@ function markResultStale() { const result = $("#result .result"); if (!result ||
 updateSummary();
 const progressTimer = setInterval(updateProgress, 450);
 
-const lessonData: Record<string, string> = {
-  symbols: `<span class="phase-label">FUNDAMENTOS · 01</span><h2>De los símbolos a una fórmula</h2><p class="lesson-lead">El lenguaje nombra objetos y propiedades para que una fórmula pueda preguntar algo sobre ellos.</p><div class="lesson-visual symbol-lesson-visual"><div><strong>término</strong><code>f(a)</code><small>denota un objeto</small></div><div class="lesson-arrow">→</div><div><strong>fórmula</strong><code>P(f(a))</code><small>puede ser verdadera o falsa</small></div></div><p>Una variable representa un elemento; una constante es una función de aridad 0; una función produce un elemento y un predicado recibe una cantidad fija de elementos. Esa cantidad es su aridad.</p><p>La fórmula se evalúa bajo una interpretación y, si tiene variables libres, bajo un entorno. El editor valida que los símbolos y sus aridades coincidan.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>Declara símbolos en Lenguaje y usa nombres compatibles en Fórmula.</span><button class="button small" data-learning-example="universal-verdadero">Probar ejemplo compatible</button></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
-  quantifiers: `<span class="phase-label">FUNDAMENTOS · 02</span><h2>Interpretaciones y cuantificadores</h2><p class="lesson-lead">Una interpretación fija el dominio y decide qué salidas de funciones y qué relaciones son verdaderas.</p><div class="lesson-visual quantifier-visual"><div class="domain-strip"><span>1</span><span class="false-mark">2</span><span class="true-mark">3</span></div><div class="comparison-grid"><div><strong>∃x P(x)</strong><b class="true-text">Verdadero</b><small>Testigo: 2 (también 3)</small></div><div><strong>∀x P(x)</strong><b class="false-text">Falso</b><small>Contraejemplo: 1</small></div></div></div><p>Para una relación unaria, P se cumple para 2 y 3. El parser da a <code>∀x P(x) → Q(x)</code> el alcance <code>(∀x P(x)) → Q(x)</code>; para cuantificar toda la implicación usa <code>∀x (P(x) → Q(x))</code>.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>Interpretación construye los datos; Evaluación muestra el testigo o contraejemplo real.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
-  meaning: `<span class="phase-label">FUNDAMENTOS · 03</span><h2>Evaluar, demostrar y ser válido</h2><p class="lesson-lead">Son relaciones distintas entre una fórmula, una interpretación y un sistema de axiomas.</p><div class="lesson-visual meaning-visual"><div><code>M, s ⊨ φ</code><small>verdad concreta</small></div><div><code>Γ ⊨ φ</code><small>consecuencia semántica</small></div><div><code>Γ ⊢ φ</code><small>derivación formal</small></div><div><code>⊨ φ</code><small>validez universal</small></div></div><p>Corrección —también llamada validez en este contexto— conecta derivaciones correctas con consecuencias semánticas. Completitud afirma, bajo sus hipótesis, que una consecuencia semántica tiene una derivación formal.</p><p>El árbol de esta aplicación justifica una evaluación concreta sobre el modelo finito que construiste. No es una demostración formal de validez universal.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>Lee el árbol junto con la interpretación y la asignación del resultado.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
-  peano: `<span class="phase-label">CONEXIONES · 04</span><h2>Peano: lenguaje y axiomas</h2><p class="lesson-lead">Peano usa un lenguaje para hablar de 0, sucesor, suma, multiplicación e inducción como esquema de axiomas.</p><div class="lesson-visual peano-visual"><div><code>0</code><small>cero</small></div><div><code>S(0)</code><small>un sucesor</small></div><div><code>S(S(0))</code><small>dos sucesores</small></div></div><p><code>S(0) + S(0) = S(S(0))</code> es una ilustración de la lección, no una prueba generada ni verificada por el evaluador.</p><p>El programa trabaja con dominios finitos y no representa toda la aritmética de los naturales. No presentes una estructura finita como modelo de todos los axiomas de Peano.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>La igualdad y la aritmética quedan fuera del contrato; las fórmulas ejecutables usan la sintaxis admitida.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
-  undecidability: `<span class="phase-label">CONEXIONES · 05</span><h2>Por qué el evaluador tiene un alcance concreto</h2><p class="lesson-lead">Evaluar un modelo finito es acotado. Decidir la validez general de primer orden sobre todas las interpretaciones es otro problema.</p><div class="lesson-visual pcp-visual"><div><code>ab / a</code><code>a / ba</code></div><strong>aba = aba</strong><small>coincidencia ilustrativa de PCP</small></div><p>El problema de parada, las máquinas de Turing y PCP ayudan a explicar por qué no existe un procedimiento general para todos los casos de validez. Esta pantalla no implementa un solucionador de PCP ni un simulador completo de Turing.</p><p>Agotar un límite de recursos no significa “falso” ni demuestra por sí solo indecidibilidad.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>El motor consulta el modelo finito y comunica sus límites.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`,
-  godel: `<span class="phase-label">CONEXIONES · 06</span><h2>Gödel: verdad y demostrabilidad</h2><p class="lesson-lead">La aritmética puede codificar expresiones y pruebas con números para hablar de la demostrabilidad dentro de un sistema.</p><div class="lesson-visual godel-visual"><div><strong>codificar</strong><span>expresiones → números</span></div><div><strong>verificar</strong><span>comprobar una prueba</span></div><div><strong>diagonalizar</strong><span>autorreferencia controlada</span></div></div><p>La incompletitud requiere hipótesis como consistencia en la formulación pertinente, axiomatización efectiva y suficiente expresividad aritmética. La verdad aritmética se entiende en la interpretación estándar de los naturales.</p><p>No contradice la completitud de la lógica de primer orden. Este evaluador finito no decide una oración de Gödel ni verifica el teorema.</p><div class="lesson-connection"><strong>En la aplicación</strong><span>El resultado responde por la interpretación concreta, no por la verdad aritmética estándar.</span></div><p class="lesson-source">Fuente: presentación adjunta — pendiente de verificación; diapositiva no disponible en este entorno.</p><button class="button lesson-back-inline">Volver al evaluador</button>`
-};
 let suggestionsPaused = false;
 let suggestionsDisabled = false;
 const helpAttempts = new Map<string, number>();
@@ -233,21 +478,126 @@ const helpDismissed = new Set<string>();
 const helpSuggestedAt = new Map<string, number>();
 type HelpIssue = { key: string; phase: string; lesson: string; title: string; detail: string };
 function issueForPhase(phase: string): HelpIssue | null {
-  if (phase === "interpretation" && !state.domain.length) return { key: "interpretation:DOMAIN_EMPTY", phase, lesson: "quantifiers", title: "El dominio todavía está vacío", detail: "Agrega al menos un elemento antes de construir las tablas." };
-  if (phase === "language" && state.languageErrors.length) { const e = state.languageErrors[0]; return { key: `language:${e.code}:${e.path || "root"}`, phase, lesson: "symbols", title: "Revisa el símbolo o su aridad", detail: e.message }; }
-  if (phase === "interpretation" && state.interpErrors.length) { const e = state.interpErrors[0]; return { key: `interpretation:${e.code}:${e.path || "root"}`, phase, lesson: "quantifiers", title: "Revisa la interpretación", detail: e.message }; }
-  if ((phase === "formula" || phase === "evaluation") && state.analysis?.errors?.length) { const e = state.analysis.errors[0]; return { key: `formula:${e.code}:${e.start}`, phase: "formula", lesson: "symbols", title: "Revisa la construcción de la fórmula", detail: e.message }; }
-  if ((phase === "formula" || phase === "evaluation") && !(($("#formula-input") as HTMLTextAreaElement).value.trim())) return { key: "formula:EMPTY", phase: "formula", lesson: "symbols", title: "Falta una fórmula", detail: "Escribe una fórmula antes de continuar hacia la evaluación." };
-  if ((phase === "formula" || phase === "evaluation") && state.analysis?.freeVars?.some((v) => !state.domain.includes(state.env[v]))) { const v = state.analysis.freeVars.find((x) => !state.domain.includes(state.env[x])) || "la variable"; return { key: `formula:ENV_MISSING:${v}`, phase: "formula", lesson: "quantifiers", title: "Falta una asignación para una variable libre", detail: `Asigna ${v} a un elemento del dominio.` }; }
+  if (phase === "interpretation" && !state.domain.length) return { key: "interpretation:DOMAIN_EMPTY", phase, lesson: "interpretation", title: "El dominio todavía está vacío", detail: "Agrega al menos un elemento antes de construir las tablas." };
+  if (phase === "language" && state.languageErrors.length) { const e = state.languageErrors[0]; return { key: `language:${e.code}:${e.path || "root"}`, phase, lesson: "language", title: "Revisa el símbolo o su aridad", detail: e.message }; }
+  if (phase === "interpretation" && state.interpErrors.length) { const e = state.interpErrors[0]; return { key: `interpretation:${e.code}:${e.path || "root"}`, phase, lesson: "interpretation", title: "Revisa la interpretación", detail: e.message }; }
+  if ((phase === "formula" || phase === "evaluation") && state.analysis?.errors?.length) { const e = state.analysis.errors[0]; return { key: `formula:${e.code}:${e.start}`, phase: "formula", lesson: "formula", title: "Revisa la construcción de la fórmula", detail: e.message }; }
+  if ((phase === "formula" || phase === "evaluation") && !(($("#formula-input") as HTMLTextAreaElement).value.trim())) return { key: "formula:EMPTY", phase: "formula", lesson: "formula", title: "Falta una fórmula", detail: "Escribe una fórmula antes de continuar hacia la evaluación." };
+  if ((phase === "formula" || phase === "evaluation") && state.analysis?.freeVars?.some((v) => !state.domain.includes(state.env[v]))) { const v = state.analysis.freeVars.find((x) => !state.domain.includes(state.env[x])) || "la variable"; return { key: `formula:ENV_MISSING:${v}`, phase: "formula", lesson: "formula", title: "Falta una asignación para una variable libre", detail: `Asigna ${v} a un elemento del dominio.` }; }
   return null;
 }
 function clearContextHelp() { contextHelp.replaceChildren(); contextHelp.classList.add("hidden"); }
 function showContextHelp(issue: HelpIssue) { const card = document.createElement("div"); card.className = "context-help-card"; const label = document.createElement("span"); label.className = "mini-label"; label.textContent = "AYUDA CONTEXTUAL"; const title = document.createElement("strong"); title.textContent = issue.title; const detail = document.createElement("p"); detail.textContent = issue.detail; const actions = document.createElement("div"); const open = document.createElement("button"); open.className = "button small primary"; open.textContent = "Ver explicación"; const dismiss = document.createElement("button"); dismiss.className = "button small"; dismiss.textContent = "Ahora no"; const disable = document.createElement("button"); disable.className = "text-button"; disable.textContent = "Desactivar sugerencias automáticas"; actions.append(open, dismiss); card.append(label, title, detail, actions, disable); contextHelp.replaceChildren(card); contextHelp.classList.remove("hidden"); open.addEventListener("click", () => openLearning(issue.lesson, issue.phase)); dismiss.addEventListener("click", () => { helpDismissed.add(issue.key); clearContextHelp(); }); disable.addEventListener("click", () => { suggestionsDisabled = true; clearContextHelp(); }); }
 function recordHelpAttempt(phase: string) { if (suggestionsDisabled || suggestionsPaused) return; const issue = issueForPhase(phase); if (!issue) return; const count = (helpAttempts.get(issue.key) || 0) + 1; helpAttempts.set(issue.key, count); const last = helpSuggestedAt.get(issue.key) || 0; if (count >= 3 && !helpDismissed.has(issue.key) && Date.now() - last >= 120000) { helpSuggestedAt.set(issue.key, Date.now()); showContextHelp(issue); } }
-function renderLesson(id: string) { lessonContent.innerHTML = lessonData[id] || lessonData.symbols; lessonContent.querySelectorAll(".lesson-source,.lesson-back-inline").forEach((node) => node.remove()); $$(".lesson-link").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.lesson === id)); requestAnimationFrame(() => { const active = $(".lesson-link.active") as HTMLElement | null; const nav = $(".lesson-nav") as HTMLElement; if (active) { const navBox = nav.getBoundingClientRect(); const activeBox = active.getBoundingClientRect(); nav.scrollLeft += activeBox.left - navBox.left - (nav.clientWidth - active.clientWidth) / 2; } }); lessonContent.querySelectorAll("[data-learning-example]").forEach((b) => b.addEventListener("click", () => loadExample((b as HTMLElement).dataset.learningExample || ""))); }
-function openLearning(id = "symbols", returnPhase = activePhase) { learningReturnPhase = returnPhase; suggestionsPaused = true; clearContextHelp(); $$(".phase-panel").forEach((p) => p.classList.remove("active")); examplesPanel.classList.add("hidden"); $(".stage-intro").classList.add("hidden"); learningView.classList.remove("hidden"); $("#toggle-learn").classList.add("active"); renderLesson(id); lessonContent.focus({ preventScroll: true }); }
-function closeLearning() { suggestionsPaused = false; learningView.classList.add("hidden"); $(".stage-intro").classList.remove("hidden"); $("#toggle-learn").classList.remove("active"); const phase = learningReturnPhase; activePhase = ""; openPhase(phase, "back"); }
-$("#toggle-learn").addEventListener("click", () => openLearning()); $("#back-to-work").addEventListener("click", closeLearning); $$(".lesson-link").forEach((b) => b.addEventListener("click", () => renderLesson((b as HTMLElement).dataset.lesson || "symbols"))); renderLesson("symbols");
+function renderLesson(id: string) {
+  const lesson = LEARN_LESSONS.find((item) => item.id === id) || LEARN_LESSONS[0];
+  const paragraphsHtml = lesson.paragraphs.map((p) => `<p>${escapeHTML(p)}</p>`).join("");
+  const actionHtml =
+    lesson.actionButton.kind === "example"
+      ? `<button class="button small primary" data-learning-example="${escapeHTML(lesson.actionButton.exampleId)}">${escapeHTML(lesson.actionButton.label)}</button>`
+      : `<button class="button small primary" data-go-phase="${escapeHTML(lesson.actionButton.phase)}">${escapeHTML(lesson.actionButton.label)}</button>`;
+  const historyHtml = lesson.historyLink
+    ? `<p><a href="${escapeHTML(lesson.historyLink.hash)}" data-history-hash="${escapeHTML(lesson.historyLink.hash)}">${escapeHTML(lesson.historyLink.label)}</a></p>`
+    : "";
+
+  lessonContent.innerHTML = `
+    <span class="phase-label">${escapeHTML(lesson.kicker)}</span>
+    <h2>${escapeHTML(lesson.title)}</h2>
+    <p class="lesson-lead">${escapeHTML(lesson.lead)}</p>
+    ${paragraphsHtml}
+    <div class="lesson-visual">
+      <div><strong>${escapeHTML(lesson.exampleLabel)}</strong><code>${escapeHTML(lesson.exampleCode)}</code><small>${escapeHTML(lesson.exampleSummary)}</small></div>
+    </div>
+    <div class="lesson-connection">
+      <strong>Dónde se hace en la aplicación</strong>
+      <span>${escapeHTML(lesson.whereText)}</span>
+      ${actionHtml}
+    </div>
+    ${historyHtml}
+  `;
+
+  $$(".lesson-link").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.lesson === lesson.id));
+  requestAnimationFrame(() => {
+    const active = $(".lesson-link.active") as HTMLElement | null;
+    const nav = $(".lesson-nav") as HTMLElement;
+    if (active) {
+      const navBox = nav.getBoundingClientRect();
+      const activeBox = active.getBoundingClientRect();
+      nav.scrollLeft += activeBox.left - navBox.left - (nav.clientWidth - active.clientWidth) / 2;
+    }
+  });
+  lessonContent.querySelectorAll<HTMLElement>("[data-learning-example]").forEach((b) =>
+    b.addEventListener("click", () => loadExample(b.dataset.learningExample || "")),
+  );
+  lessonContent.querySelectorAll<HTMLElement>("[data-go-phase]").forEach((b) =>
+    b.addEventListener("click", () => openPhase(b.dataset.goPhase || "language", "forward")),
+  );
+  lessonContent.querySelectorAll<HTMLElement>("[data-history-hash]").forEach((a) =>
+    a.addEventListener("click", (event) => {
+      event.preventDefault();
+      const parsed = parseHash(a.dataset.historyHash || "#historia/8", navState.phase);
+      applyNavState(parsed, true, "forward", false);
+    }),
+  );
+}
+function openLearning(id = "start", returnPhase: string = navState.phase) {
+  learningReturnPhase = returnPhase;
+  applyNavState(openAuxView(navState, "aprender"), true, "forward", false);
+  renderLesson(id);
+  lessonContent.focus({ preventScroll: true });
+}
+function closeLearning() {
+  applyNavState(setPhase(navState, learningReturnPhase as PhaseId), true, "back", true);
+}
+const historyUI = createHistoryUI(
+  () => {
+    applyNavState(setPhase(navState, learningReturnPhase as PhaseId), true, "back", true);
+  },
+  (_chapterId, number1Based) => {
+    if (navState.auxView === "historia") {
+      navState = { ...navState, historyChapter: String(number1Based) };
+      const targetHash = formatHash(navState);
+      if (location.hash !== targetHash) history.pushState(null, "", targetHash);
+    }
+  },
+  () => {
+    setPeek("left", !leftPeek);
+    if (leftPeek) (sidebarEl.querySelector("a, button") as HTMLElement | null)?.focus();
+  },
+);
+historyUI.setRenderHook((chapter, slots) => {
+  attachHistoryDemos(chapter, slots, {
+    loadPresetInEvaluator(preset, runModelSearch) {
+      if (hasUserWork() && (!state.example || exampleDirty) && !window.confirm("Este ejemplo de Historia reemplazará los datos que editaste. ¿Quieres continuar?")) return;
+      applyingExample = true;
+      language.load(preset.language);
+      interpretation.load(preset.interpretation);
+      formula.load(preset.input, preset.env);
+      applyingExample = false;
+      exampleDirty = false;
+      window.scrollTo(0, 0);
+      applyNavState(setPhase(navState, "evaluation"), true, "forward", true);
+      if (runModelSearch) {
+        const limitInput = $("#model-search-limit") as HTMLInputElement | null;
+        if (limitInput) limitInput.value = String(preset.searchLimit ?? 2);
+        setTimeout(() => ($("#search-models") as HTMLButtonElement | null)?.click(), 80);
+      }
+    }
+  });
+});
+function openHistory(chapterId?: string, returnPhase: string = navState.phase || "language") {
+  learningReturnPhase = returnPhase;
+  applyNavState(openAuxView(navState, "historia", chapterId ?? null), true, "forward", false);
+}
+$("#toggle-history").addEventListener("click", () => {
+  if (navState.auxView === "historia") closeLearning();
+  else openHistory();
+});
+$("#toggle-learn").addEventListener("click", () => {
+  if (navState.auxView === "aprender") closeLearning();
+  else openLearning();
+});
+$("#back-to-work").addEventListener("click", closeLearning); $$(".lesson-link").forEach((b) => b.addEventListener("click", () => renderLesson((b as HTMLElement).dataset.lesson || "start"))); renderLesson("start");
 
 const tutorialSteps = [
   ["Cómo se conectan las piezas","Este es un ejemplo aislado: el modelo real no cambia mientras recorres el tutorial."],
@@ -285,9 +635,40 @@ function closeTutorial(completed = false) {
 $("#open-tutorial").addEventListener("click", showTutorial); $("#close-tutorial").addEventListener("click", () => closeTutorial()); $("#skip-tutorial").addEventListener("click", () => closeTutorial());
 $("#tutorial-back").addEventListener("click", () => { tutorialIndex = Math.max(0, tutorialIndex - 1); renderTutorial(); });
 $("#tutorial-next").addEventListener("click", () => { if (tutorialIndex === tutorialSteps.length - 1) closeTutorial(true); else { tutorialIndex++; renderTutorial(); } });
+document.addEventListener("pointerdown", (event) => {
+  if (!navState.focusMode) return;
+  const target = event.target as Node | null;
+  if (!target) return;
+  const menuBtn = document.getElementById("history-toggle-menu");
+  const insideLeft =
+    sidebarEl.contains(target) ||
+    focusHandleLeft.contains(target) ||
+    (menuBtn ? menuBtn.contains(target) : false);
+  const insideRight = modelRailEl.contains(target) || focusHandleRight.contains(target);
+  if ((leftPeek && !insideLeft) || (rightPeek && !insideRight)) {
+    if (!insideLeft) leftPeek = false;
+    if (!insideRight) rightPeek = false;
+    if (!insideLeft && sidebarEl.contains(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+    if (!insideRight && modelRailEl.contains(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+    syncFocusSidebars();
+  }
+});
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
   if (!appearanceMenu.classList.contains("hidden")) { event.preventDefault(); closeAppearance(); return; }
-  if (!tutorial.classList.contains("hidden")) { event.preventDefault(); closeTutorial(); }
+  if (!tutorial.classList.contains("hidden")) { event.preventDefault(); closeTutorial(); return; }
+  if (navState.focusMode && (leftPeek || rightPeek || sidebarEl.matches(":focus-within") || modelRailEl.matches(":focus-within"))) {
+    event.preventDefault();
+    leftPeek = false;
+    rightPeek = false;
+    if (sidebarEl.contains(document.activeElement) || modelRailEl.contains(document.activeElement)) {
+      (document.activeElement as HTMLElement).blur();
+    }
+    syncFocusSidebars();
+  }
 });
-if (location.hash && phaseInfo[location.hash.slice(1)]) enterEvaluator(false);
+if (location.hash) enterEvaluator(false);

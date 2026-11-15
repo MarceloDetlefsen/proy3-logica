@@ -193,6 +193,23 @@ export function createLanguageUI(actions) {
     renderAll();
   }
 
+  function clearLanguage() {
+    hasInteracted = false;
+    state.funcs = [{ name: "", arity: 1 }];
+    state.preds = [{ name: "", arity: 1 }];
+    state.languageErrors = [];
+    state.langValid = false;
+    renderSymbols("func");
+    renderSymbols("pred");
+    actions.resetWorkspace?.();
+    const host = $("#language-status");
+    host.textContent = "Todo limpiado. Empieza desde cero.";
+    host.className = "status";
+    (funcsHost.querySelector(".symbol-name") as HTMLInputElement | null)?.focus();
+  }
+
+  $("#clear-language")?.addEventListener("click", clearLanguage);
+
   $("#add-func").addEventListener("click", () => {
     const emptyIndex = state.funcs.findIndex((symbol) => !symbol.name.trim());
     if (emptyIndex >= 0) {

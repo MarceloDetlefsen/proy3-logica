@@ -1,0 +1,14 @@
+{
+  "name": "proy3-logica-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:fast": "playwright test --config=playwright.config.mjs --grep @fast",
+    "test:full": "playwright test --config=playwright.config.mjs",
+    "captures": "node captures.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.52.0"
+  }
+}

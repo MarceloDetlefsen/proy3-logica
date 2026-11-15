@@ -12,6 +12,9 @@ go run .
 
 Luego abrir <http://localhost:8080>.
 
+La exportación a PDF requiere `pdflatex` en el `PATH` del servidor. Se puede
+seleccionar otro ejecutable compatible con `LATEX_COMPILER=/ruta/al/ejecutable`.
+
 La UI está escrita solo en TypeScript vanilla bajo `web/src/`. `npm run
 build:web` genera los módulos que necesita el navegador dentro de `web/build/`;
 esa carpeta generada no se versiona. Hay que recompilar después de cambiar los
@@ -112,3 +115,14 @@ de todas las variables libres. Si hay errores, no devuelve `result`. La
 evaluación aplica semántica de Tarski y devuelve el valor y un árbol de
 explicación. Cada petición tiene un presupuesto de 100 000 pasos; si se agota,
 responde con `EVAL_LIMIT` en `errors`.
+
+### `POST /api/evaluate/export/pdf`
+
+Recibe el mismo cuerpo que `/api/evaluate`, valida y vuelve a evaluar la
+petición, y responde con un PDF compilado mediante `pdflatex`. El documento
+incluye la firma, el dominio, todas las tablas de función y relaciones, el
+entorno, el resultado y el árbol de explicación disponible (subfórmulas,
+valores, reglas, resúmenes, términos, testigos, contraejemplos, revisiones y
+ramas decisivas). Si el árbol se recortó, el documento lo indica. Las
+interpretaciones inválidas se responden con `422`; si falta `pdflatex`, con
+`503`.

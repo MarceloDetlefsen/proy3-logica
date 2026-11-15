@@ -80,10 +80,7 @@ go test -run=^$ -bench . -benchmem -count 5 ./...
 make docs-check
 make e2e          # Suite visual, de comportamiento y accesibilidad rápida (@fast)
 make e2e-full     # Matriz completa: servidor + Pages (WASM), 7 viewports, 2 temas y reduced-motion
-make captures     # Regenera las capturas de docs/captures/ a 1440x900
 ```
-
-> **Requisitos para E2E y capturas:** Node.js con Playwright (`cd e2e && npm install` con `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`) y Chromium instalado (`/usr/bin/chromium` o variable `CHROMIUM_PATH`).
 
 Más detalle: [docs/despliegue.md](docs/despliegue.md) · [docs/rendimiento.md](docs/rendimiento.md)
 
@@ -312,102 +309,18 @@ Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/c
 
 ```text
 .
-├── .dockerignore                         # Exclusiones del contexto de compilación Docker
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                        # Pruebas Go/WASM, docs-check y smoke test Docker
-│       ├── docker.yml                    # Publicación de imagen en GHCR (main y tags v*)
-│       └── pages.yml                     # Despliegue estático en GitHub Pages
-├── Dockerfile                            # Build multi-stage (Node + Go estático + TeX Live)
-├── Makefile                              # Atajos: run, test, bench, pages, verify-pages, docker-*, docs-check
-├── README.md                             # Documentación principal del proyecto
-├── api.go                                # Handlers HTTP de /api/*
-├── api_test.go                           # Pruebas de integración HTTP y /healthz
-├── cmd/
-│   └── wasm/
-│       └── main.go                       # Punto de entrada WebAssembly (//go:build js && wasm)
-├── docker-compose.yml                    # Servicio endurecido (read_only, tmpfs, cap_drop)
-├── e2e/                                  # Suite Playwright (visual, comportamiento, a11y) y capturas
-│   ├── captures.mjs                      # Generación determinista de capturas en docs/captures/
-│   ├── playwright.config.mjs             # Matriz servidor Go + Pages (WASM) con Chromium local
-│   ├── serve-pages.mjs                   # Compila y sirve dist/ bajo /proy3-logica/
-│   ├── serve-server.mjs                  # Compila y sirve el binario Go temporal
-│   └── tests/                            # Specs de evaluador, vistas auxiliares y modo enfoque
-├── docs/
-│   ├── README.md                         # Índice de estudio y orden de lectura
-│   ├── aprender.md                       # Lecciones prácticas alineadas con las 4 fases
-│   ├── arquitectura.md                   # Pipeline, paquetes y contrato Go/TypeScript
-│   ├── contrato-evaluador.md             # Especificación JSON compartida entre Go y TS
-│   ├── creativos.md                      # Aportes creativos y rúbrica
-│   ├── defensa.md                        # Banco de preguntas por módulo y guion de 3 min
-│   ├── despliegue.md                     # Modos local, Docker y GitHub Pages (WASM)
-│   ├── evaluador.md                      # Semántica de Tarski, errores y ejemplos a mano
-│   ├── explicacion.md                    # Construcción de testigos, contraejemplos y recorte
-│   ├── exportacion-pdf.md                # Plantilla LaTeX, paquetes TeX y endurecimiento
-│   ├── historia.md                       # Arco de 11 capítulos, demos interactivas y recursos locales
-│   ├── parser.md                         # Gramática, precedencia, aliases y offsets en runes
-│   ├── rendimiento.md                    # Benchmarks con testing.B y límites observados
-│   └── captures/                         # Capturas reales de la interfaz enlazadas en el README
-├── docs_test.go                          # Verificación automática de enlaces y rutas en docs
-├── export_pdf.go                         # Invocación segura de pdflatex con timeout y -no-shell-escape
-├── export_pdf_bench_test.go              # Benchmark de generación .tex
-├── history_assets_test.go                # Verifica retratos locales, pesos y ausencia de URLs externas
-├── learn_constants_test.go               # Verifica que las cifras de Aprender coincidan con internal/logic
-├── go.mod                                # Módulo Go 1.27 (cero dependencias externas)
-├── internal/
-│   └── logic/
-│       ├── analyze.go                    # Análisis de fórmula y cálculo de variables libres
-│       ├── api_pipeline.go               # Lógica compartida entre HTTP y WASM
-│       ├── ast.go                        # Nodos Term y Formula y serialización JSON
-│       ├── errors.go                     # Códigos y estructura LogicError
-│       ├── evaluate.go                   # Evaluador de Tarski, presupuesto y árbol Explanation
-│       ├── evaluator_contract.go         # Contrato JSON y límites (MaxDomainSize, MaxTableEntries)
-│       ├── interpretation_generate.go    # Generación aleatoria reproducible por semilla
-│       ├── interpretation_validate.go    # Validación de dominio, funciones totales y relaciones
-│       ├── language.go                   # Validación de nombres, aridades y palabras reservadas
-│       ├── lexer.go                      # Tokenizador Unicode/ASCII con offsets en runes
-│       ├── logic_bench_test.go           # Benchmarks de parser, evaluador, explicación y generación
-│       ├── model_search.go               # Búsqueda acotada de modelos y contramodelos finitos
-│       ├── model_search_bench_test.go    # Benchmarks de SearchModels
-│       ├── model_search_test.go          # Pruebas unitarias de SearchModels
-│       ├── parser.go                     # Parser por descenso recursivo con alcance fuerte
-│       └── tex.go                        # Generación pura en Go del documento LaTeX (.tex)
-├── main.go                               # Servidor HTTP embebido, /healthz y flag -healthcheck
-├── package.json                          # Script build:web (tsc -p web/tsconfig.json)
-├── scripts/
-│   ├── build-pages.sh                    # Genera dist/ (TS + logic.wasm + wasm_exec.js + config.js)
-│   ├── check-pages.sh                    # Verifica rutas relativas y archivos obligatorios en dist/
-│   ├── docker-smoke.sh                   # Levanta el contenedor y valida /healthz, evaluación y %PDF
-│   ├── history-logic.test.mjs            # Pruebas unitarias de Historia y presets sobre logic.wasm
-│   ├── learn.test.mjs                    # Pruebas de ejemplos de Aprender sobre logic.wasm
-│   ├── navigation.test.mjs               # Pruebas unitarias de navegación, hash y modo enfoque
-│   ├── verify-pages.sh                   # Verificación unificada de WASM para ci.yml y pages.yml
-│   └── wasm-smoke.mjs                    # Prueba logic.wasm en Node con fixtures de testdata/
-├── testdata/
-│   └── examples/                         # 18 fixtures JSON válidos e inválidos (ej. universal-verdadero.json)
-├── types.go                              # Tipos heredados sin uso activo (código muerto)
-└── web/
-    ├── assets/
-    │   └── historia/                     # 11 retratos locales optimizados y CREDITOS.md
-    ├── index.html                        # Estructura de las 4 fases, ejemplos, lecciones e Historia
-    ├── app.css                           # Estilos de componentes y disposición
-    ├── history.css                       # Estilos de la sección Historia y animaciones
-    ├── theme.css                         # Sistema visual Liquid Glass y 5 temas
-    ├── config.js                         # Selección de backend ("http" por defecto; "wasm" en Pages)
-    ├── types.ts                          # Tipos TypeScript espejados de internal/logic
-    ├── tsconfig.json                     # Configuración de TypeScript (ES2022)
-    └── src/
-        ├── api.ts                        # Transporte común HttpTransport / WasmTransport
-        ├── app.ts                        # Navegación de fases, ejemplos, temas y tutorial
-        ├── evaluation.ts                 # Evaluación, árbol paso a paso y exportación PDF/.tex
-        ├── formula.ts                    # Editor, inserción de símbolos, entorno y fórmula aleatoria
-        ├── history/                      # Capítulos, vista, lógica pura y demos de Historia
-        ├── interpretation.ts             # Dominio en chips, tablas y modelo aleatorio
-        ├── language.ts                   # Alta/baja de funciones y predicados
-        ├── learn/                        # Lecciones prácticas y ejemplos verificados de Aprender
-        ├── navigation.ts                 # Estado puro de vistas auxiliares, hash y modo enfoque
-        ├── state.ts                      # Estado global, debounce y modo ?mock=1
-        └── worker.ts                     # Web Worker que carga wasm_exec.js y logic.wasm
+├── .github/workflows/                    # CI (Go/WASM/Docker), publicación GHCR y GitHub Pages
+├── cmd/wasm/main.go                      # Punto de entrada WebAssembly (//go:build js && wasm)
+├── docs/                                 # Documentación técnica (ver docs/README.md) y captures/
+├── e2e/                                  # Suite Playwright (visual, comportamiento, a11y) y captures.mjs
+├── internal/logic/                       # Motor puro en Go: lexer, parser, analizador, evaluador, LaTeX y buscador
+├── scripts/                              # Build/verificación de Pages, WASM smoke, Docker smoke y tests JS
+├── testdata/examples/                    # 18 fixtures JSON válidos e inválidos (ej. universal-verdadero.json)
+├── web/                                  # Interfaz TypeScript vanilla, estilos Liquid Glass, assets y worker WASM
+├── main.go · api.go · export_pdf.go      # Servidor HTTP embebido, endpoints /api/* y exportación PDF con pdflatex
+├── *_test.go                             # Pruebas HTTP, docs_test.go, history_assets_test.go y learn_constants_test.go
+├── Dockerfile · docker-compose.yml       # Contenedor multi-stage endurecido con TeX Live
+└── Makefile · go.mod · package.json      # Atajos de build/pruebas, módulo Go 1.27 y tsc (build:web)
 ```
 
 ---

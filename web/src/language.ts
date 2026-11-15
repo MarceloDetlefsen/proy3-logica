@@ -195,20 +195,15 @@ export function createLanguageUI(actions) {
 
   function clearLanguage() {
     hasInteracted = false;
-    state.example = null;
     state.funcs = [{ name: "", arity: 1 }];
     state.preds = [{ name: "", arity: 1 }];
     state.languageErrors = [];
     state.langValid = false;
     renderSymbols("func");
     renderSymbols("pred");
-    actions.renderTables();
-    actions.validateInterpretation();
-    actions.analyze();
-    actions.updateEvaluate();
-    actions.updateSummary?.();
+    actions.resetWorkspace?.();
     const host = $("#language-status");
-    host.textContent = "Lenguaje limpiado. Empieza a declarar símbolos desde cero.";
+    host.textContent = "Todo limpiado. Empieza desde cero.";
     host.className = "status";
     (funcsHost.querySelector(".symbol-name") as HTMLInputElement | null)?.focus();
   }

@@ -10,7 +10,41 @@ const actions = {};
 const interpretation = createInterpretationUI(actions);
 const formula = createFormulaUI(actions);
 const evaluation = createEvaluationUI(actions);
-Object.assign(actions, { renderTables: interpretation.renderTables, validateInterpretation: interpretation.validate, analyze: formula.analyze, updateEvaluate: evaluation.updateButton, updateSummary: () => { markResultStale(); updateSummary(); } });
+Object.assign(actions, {
+  renderTables: interpretation.renderTables,
+  validateInterpretation: interpretation.validate,
+  analyze: formula.analyze,
+  updateEvaluate: evaluation.updateButton,
+  resetWorkspace() {
+    state.example = null;
+    exampleDirty = false;
+    state.domain = [];
+    state.funcRows = {};
+    state.relRows = {};
+    state.interpValid = false;
+    state.interpErrors = [];
+    state.env = {};
+    state.analysis = null;
+    state.formulaValid = false;
+    ($("#domain-input") as HTMLInputElement).value = "";
+    $("#generation-status").textContent = "";
+    $("#interpretation-status").replaceChildren();
+    ($("#formula-input") as HTMLTextAreaElement).value = "";
+    $("#formula-highlight").textContent = "";
+    $("#formula-status").replaceChildren();
+    $("#formula-generation-status").textContent = "";
+    $("#free-vars").replaceChildren();
+    $("#evaluation-status").textContent = "";
+    $("#result").replaceChildren();
+    $("#model-search-status").textContent = "";
+    $("#model-search-results").replaceChildren();
+    $("#example-description").textContent = "";
+    interpretation.renderDomain();
+    formula.analyze();
+    evaluation.updateButton();
+    updateSummary();
+  }
+});
 const language = createLanguageUI(actions);
 interpretation.renderDomain();
 

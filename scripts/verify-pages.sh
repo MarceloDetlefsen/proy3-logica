@@ -12,3 +12,4 @@ GOOS=js GOARCH=wasm go vet ./internal/... ./cmd/wasm
 node scripts/wasm-smoke.mjs
 node --test scripts/navigation.test.mjs
 node --test scripts/history-logic.test.mjs
+node --test scripts/learn.test.mjs

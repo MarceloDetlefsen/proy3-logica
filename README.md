@@ -269,7 +269,7 @@ Enumera interpretaciones finitas con dominios de tamaño `1` hasta `N` (`1 <= N 
 
 ### Aportes creativos adicionales
 
-Incluye igualdad lógica integrada (`=`), modo educativo de 6 lecciones, tutorial de 6 pasos, 5 temas visuales, modo `?mock=1` y la sección interactiva **Historia: de Euclides a Turing** (11 capítulos con retratos locales en [`web/assets/historia/`](web/assets/historia/CREDITOS.md), animaciones de diagonalización, cálculo lambda, máquina de Turing, codificador de Gödel con `BigInt` y presets conectados al evaluador y al buscador de modelos).
+Incluye igualdad lógica integrada (`=`), guía práctica **Aprender** de 6 lecciones alineadas a las 4 fases ([docs/aprender.md](docs/aprender.md)), tutorial de 6 pasos, 5 temas visuales, modo `?mock=1` y la sección interactiva **Historia: de Euclides a Turing** (11 capítulos con retratos locales en [`web/assets/historia/`](web/assets/historia/CREDITOS.md), animaciones de diagonalización, cálculo lambda, máquina de Turing, planeador de Conway, codificador de Gödel con `BigInt` y presets conectados al evaluador y al buscador de modelos).
 
 ![Sección Historia: línea de tiempo y narrativa](docs/captures/historia.png)
 ![Sección Historia: codificación de Gödel y demos interactivas](docs/captures/historia-godel.png)
@@ -324,6 +324,7 @@ Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/c
 ├── docker-compose.yml                    # Servicio endurecido (read_only, tmpfs, cap_drop)
 ├── docs/
 │   ├── README.md                         # Índice de estudio y orden de lectura
+│   ├── aprender.md                       # Lecciones prácticas alineadas con las 4 fases
 │   ├── arquitectura.md                   # Pipeline, paquetes y contrato Go/TypeScript
 │   ├── contrato-evaluador.md             # Especificación JSON compartida entre Go y TS
 │   ├── creativos.md                      # Aportes creativos y rúbrica
@@ -340,6 +341,7 @@ Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/c
 ├── export_pdf.go                         # Invocación segura de pdflatex con timeout y -no-shell-escape
 ├── export_pdf_bench_test.go              # Benchmark de generación .tex
 ├── history_assets_test.go                # Verifica retratos locales, pesos y ausencia de URLs externas
+├── learn_constants_test.go               # Verifica que las cifras de Aprender coincidan con internal/logic
 ├── go.mod                                # Módulo Go 1.27 (cero dependencias externas)
 ├── internal/
 │   └── logic/
@@ -366,6 +368,7 @@ Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/c
 │   ├── check-pages.sh                    # Verifica rutas relativas y archivos obligatorios en dist/
 │   ├── docker-smoke.sh                   # Levanta el contenedor y valida /healthz, evaluación y %PDF
 │   ├── history-logic.test.mjs            # Pruebas unitarias de Historia y presets sobre logic.wasm
+│   ├── learn.test.mjs                    # Pruebas de ejemplos de Aprender sobre logic.wasm
 │   ├── navigation.test.mjs               # Pruebas unitarias de navegación, hash y modo enfoque
 │   ├── verify-pages.sh                   # Verificación unificada de WASM para ci.yml y pages.yml
 │   └── wasm-smoke.mjs                    # Prueba logic.wasm en Node con fixtures de testdata/
@@ -390,6 +393,7 @@ Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/c
         ├── history/                      # Capítulos, vista, lógica pura y demos de Historia
         ├── interpretation.ts             # Dominio en chips, tablas y modelo aleatorio
         ├── language.ts                   # Alta/baja de funciones y predicados
+        ├── learn/                        # Lecciones prácticas y ejemplos verificados de Aprender
         ├── navigation.ts                 # Estado puro de vistas auxiliares, hash y modo enfoque
         ├── state.ts                      # Estado global, debounce y modo ?mock=1
         └── worker.ts                     # Web Worker que carga wasm_exec.js y logic.wasm

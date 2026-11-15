@@ -68,6 +68,7 @@
 9. **¿Cómo garantizan que Aprender, Ejemplos e Historia no se superpongan?** [`web/src/navigation.ts`](../web/src/navigation.ts) centraliza una sola variable `auxView` (`"aprender" | "ejemplos" | "historia" | null`); abrir cualquiera de ellas cierra automáticamente las demás sin perder el estado del evaluador.
 10. **¿Cómo funciona el enrutamiento por hash en GitHub Pages sin romper rutas relativas?** `parseHash` y `formatHash` usan exclusivamente fragmentos `#aprender`, `#ejemplos`, `#historia` y `#historia/<n>`, sin `/` iniciales ni *query strings*, por lo que funcionan bajo `/proy3-logica/` y con el botón Atrás del navegador.
 11. **¿Cómo es accesible el modo enfoque de Historia por teclado y en pantallas táctiles?** Mientras las barras laterales están ocultas tienen el atributo `inert` para que `Tab` no entre en ellas; pueden abrirse como paneles flotantes mediante los tiradores visibles (`#focus-handle-left`, `#focus-handle-right` con `aria-expanded` y `aria-controls`), el botón `Menú` de la cabecera o acercando el cursor a la zona de borde de `24 px` (`120 ms` al abrir / `300 ms` al cerrar).
+12. **¿Cómo garantizan que la guía Aprender sea fiel al comportamiento real del motor?** [`learn_constants_test.go`](../learn_constants_test.go) verifica en Go que todos los límites citados coincidan con `internal/logic/`, y [`scripts/learn.test.mjs`](../scripts/learn.test.mjs) ejecuta cada ejemplo de [`web/src/learn/lessons.ts`](../web/src/learn/lessons.ts) directamente contra `dist/logic.wasm`.
 
 ### 5. Extras (PDF, Aleatorización, Igualdad)
 

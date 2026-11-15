@@ -78,7 +78,12 @@ Abrir <http://localhost:8081>.
 go test ./...
 go test -run=^$ -bench . -benchmem -count 5 ./...
 make docs-check
+make e2e          # Suite visual, de comportamiento y accesibilidad rápida (@fast)
+make e2e-full     # Matriz completa: servidor + Pages (WASM), 7 viewports, 2 temas y reduced-motion
+make captures     # Regenera las capturas de docs/captures/ a 1440x900
 ```
+
+> **Requisitos para E2E y capturas:** Node.js con Playwright (`cd e2e && npm install` con `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`) y Chromium instalado (`/usr/bin/chromium` o variable `CHROMIUM_PATH`).
 
 Más detalle: [docs/despliegue.md](docs/despliegue.md) · [docs/rendimiento.md](docs/rendimiento.md)
 
@@ -273,7 +278,7 @@ Incluye igualdad lógica integrada (`=`), guía práctica **Aprender** de 6 lecc
 
 ![Sección Historia: línea de tiempo y narrativa](docs/captures/historia.png)
 ![Sección Historia: codificación de Gödel y demos interactivas](docs/captures/historia-godel.png)
-**Evidencia (capturas pendientes de tomar por el usuario):** `docs/captures/historia.png`, `docs/captures/historia-godel.png`
+**Evidencia:** `docs/captures/historia.png`, `docs/captures/historia-godel.png`
 
 Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/creativos.md)
 
@@ -322,6 +327,12 @@ Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/c
 │   └── wasm/
 │       └── main.go                       # Punto de entrada WebAssembly (//go:build js && wasm)
 ├── docker-compose.yml                    # Servicio endurecido (read_only, tmpfs, cap_drop)
+├── e2e/                                  # Suite Playwright (visual, comportamiento, a11y) y capturas
+│   ├── captures.mjs                      # Generación determinista de capturas en docs/captures/
+│   ├── playwright.config.mjs             # Matriz servidor Go + Pages (WASM) con Chromium local
+│   ├── serve-pages.mjs                   # Compila y sirve dist/ bajo /proy3-logica/
+│   ├── serve-server.mjs                  # Compila y sirve el binario Go temporal
+│   └── tests/                            # Specs de evaluador, vistas auxiliares y modo enfoque
 ├── docs/
 │   ├── README.md                         # Índice de estudio y orden de lectura
 │   ├── aprender.md                       # Lecciones prácticas alineadas con las 4 fases

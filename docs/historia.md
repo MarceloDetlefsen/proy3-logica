@@ -26,7 +26,8 @@
   - `createUnaryAdditionMachine` / `stepTuringMachine`: simulador determinista de suma unaria (`2 + 3 = 5`).
   - `triangleAngleSum`: variación de la suma angular en geometría euclideana, esférica e hiperbólica.
   - `HISTORY_PRESETS`: casos `syllogism`, `barber` e `infinite_order` listos para cargar en el evaluador o en `SearchModels`.
-- [`web/src/history/demos.ts`](../web/src/history/demos.ts): Controles `Reproducir / Pausar`, `Paso` y `Reiniciar` (respetando `prefers-reduced-motion`), botones **"Cargar en el evaluador"** / **"Probar en buscador"** y tarjetas de autoevaluación.
+- [`web/src/history/demos.ts`](../web/src/history/demos.ts): Controles `Reproducir / Pausar`, `Paso` y `Reiniciar` (respetando `prefers-reduced-motion`; en el capítulo 11 el planeador de Conway inicia automáticamente cuando `prefers-reduced-motion` no es `reduce`), botones **"Cargar en el evaluador"** / **"Probar en buscador"** centrados y tarjetas de autoevaluación en 2 columnas en escritorio (`1` columna en `<= 820px`).
+- En el capítulo 02 (*Geometrías no euclideanas*), los dos retratos (Gauss y Lobachevsky) se disponen flanqueando el texto a izquierda y derecha (`.has-two-portraits` en [`web/history.css`](../web/history.css)).
 
 ## Recursos locales, galería y pruebas
 

@@ -120,3 +120,11 @@
 2. **Minuto 0:45 – 1:45 (Fórmula, alcance y entorno):** Escribir `∀x ∃y Lt(x, y)` usando tanto teclado como botones de símbolos; mostrar el aviso de alcance fuerte y probar una fórmula abierta como `Lt(x, y)` para ver aparecer los selectores de entorno.
 3. **Minuto 1:45 – 2:30 (Evaluación y árbol paso a paso):** Evaluar, mostrar el contraejemplo/testigo y recorrer el árbol paso a paso destacando las ramas decisivas.
 4. **Minuto 2:30 – 3:00 (Aleatorización y PDF/WASM):** Generar una interpretación y fórmula aleatorias; exportar la resolución a PDF (en Docker) o `.tex` (en Pages) y mencionar la suite de pruebas y benchmarks.
+
+## Preguntas sobre pruebas visuales y accesibilidad
+
+- **¿Cómo verificaron que la interfaz y el modo enfoque de Historia funcionan sin regresiones visuales entre modos y resoluciones?**
+  Con la suite de Playwright en [`e2e/`](../e2e/playwright.config.mjs) (`make e2e` rápido y `make e2e-full` completo), ejecutada contra ambos backends reales (servidor HTTP Go y build estático de Pages con WebAssembly), en 7 viewports (`1920x1080` hasta `390x844`), tema oscuro/claro y `prefers-reduced-motion`. Comprueba ausencia de scroll horizontal, no superposición de controles, retardos de bordes sensibles (`120 ms`/`300 ms`), navegación por hash (`#historia/5`) y carga de los 11 visuales sin errores de consola.
+
+- **¿Qué garantías de accesibilidad cubre la interfaz además del aspecto visual?**
+  La suite ejecuta `@axe-core/playwright` en las vistas principales (evaluador, Aprender, Ejemplos e Historia en claro y oscuro), verifica que `#evaluator-sidebar` y `#model-rail` reciban `inert` cuando están ocultos en el modo enfoque, comprueba `aria-expanded` en `#focus-handle-left` y `#history-toggle-menu`, retorno de foco al cerrar paneles con `Escape` y respeto de `prefers-reduced-motion: reduce` (incluyendo la animación automática del Juego de la Vida en el capítulo 11).

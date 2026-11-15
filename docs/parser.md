@@ -15,7 +15,9 @@ imp     := or ( IMP imp )?
 or      := and ( OR and )*
 and     := unary ( AND unary )*
 unary   := NOT unary | (FORALL|EXISTS) IDENT unary | atom
-atom    := LPAREN formula RPAREN | IDENT [ LPAREN term (COMMA term)* RPAREN ]
+atom    := LPAREN formula RPAREN | equality | predicate
+equality := term EQUAL term
+predicate := IDENT [ LPAREN term (COMMA term)* RPAREN ]
 term    := IDENT [ LPAREN term (COMMA term)* RPAREN ]
 ```
 
@@ -33,7 +35,7 @@ De menor a mayor precedencia:
 | 3 | `or` | izquierda |
 | 4 | `and` | izquierda |
 | 5 | `not`, cuantificadores | prefijo |
-| 6 | átomos y paréntesis | — |
+| 6 | predicados, igualdades y paréntesis | — |
 
 Por ejemplo, `P(x) -> Q(x) -> R(x)` es
 `P(x) -> (Q(x) -> R(x))`, mientras que `P(x) & Q(x) & R(x)` es
@@ -50,6 +52,7 @@ Por ejemplo, `P(x) -> Q(x) -> R(x)` es
 | IFF | `↔` | `<->`, `<=>` |
 | FORALL | `∀` | `forall` |
 | EXISTS | `∃` | `exists` |
+| EQUAL | `=` | — |
 
 Los nombres de `forall` y `exists` se reconocen sin distinguir mayúsculas.
 Los identificadores tienen la forma `[A-Za-z_][A-Za-z0-9_]*`. También se
@@ -59,6 +62,9 @@ aceptan paréntesis y comas; los espacios y saltos de línea se ignoran.
 
 - En un átomo, el nombre debe ser un predicado declarado y la cantidad de
   argumentos debe coincidir con su aridad.
+- La igualdad es un predicado lógico especial: `t1 = t2` compara los elementos
+  del dominio denotados por ambos términos. No se declara en el lenguaje ni
+  requiere una tabla de interpretación.
 - Una función usada en posición de átomo produce `WRONG_SYMBOL_KIND`.
 - Una función con paréntesis en un término debe estar declarada y tener la
   aridad indicada.
@@ -115,6 +121,9 @@ analysis := logic.AnalyzeFormula("P(x)", lang)
 // analysis.FreeVars == []string{"x"}
 // analysis.Warnings y analysis.Errors siempre son slices no nulos.
 ```
+
+La igualdad también aporta las variables que aparezcan en sus términos:
+`x = f(y)` tiene variables libres `x` e `y`.
 
 La respuesta puede serializarse directamente a JSON para la UI:
 

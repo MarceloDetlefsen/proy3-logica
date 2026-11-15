@@ -11,6 +11,7 @@ const (
 	LPAREN TokenType = "LPAREN"
 	RPAREN TokenType = "RPAREN"
 	COMMA  TokenType = "COMMA"
+	EQUAL  TokenType = "EQUAL"
 	NOT    TokenType = "NOT"
 	AND    TokenType = "AND"
 	OR     TokenType = "OR"
@@ -105,6 +106,7 @@ func matchOperator(input []rune, start int) (TokenType, int) {
 		{"(", LPAREN},
 		{")", RPAREN},
 		{",", COMMA},
+		{"=", EQUAL},
 	}
 
 	for _, operator := range operators {

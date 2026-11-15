@@ -139,6 +139,26 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 		} else {
 			node.Summary = "La tupla de términos no pertenece a la relación."
 		}
+	case Eq:
+		node.Rule = "eq"
+		left, err := s.evalTerm(f.Left, env)
+		if err != nil {
+			return false, Explanation{}, err
+		}
+		right, err := s.evalTerm(f.Right, env)
+		if err != nil {
+			return false, Explanation{}, err
+		}
+		node.Terms = []ExplanationTerm{
+			{Term: TermString(f.Left), Value: left},
+			{Term: TermString(f.Right), Value: right},
+		}
+		holds = left == right
+		if holds {
+			node.Summary = fmt.Sprintf("Ambos términos denotan el mismo elemento del dominio (%q).", left)
+		} else {
+			node.Summary = fmt.Sprintf("Los términos denotan elementos distintos del dominio (%q y %q).", left, right)
+		}
 	case Not:
 		node.Rule = "not"
 		value, explanation, err := child(f.F, env)
@@ -320,6 +340,8 @@ func FormulaString(formula Formula) string {
 			return node.Name
 		}
 		return node.Name + "(" + strings.Join(args, ", ") + ")"
+	case Eq:
+		return TermString(node.Left) + " = " + TermString(node.Right)
 	case Not:
 		return "¬" + FormulaString(node.F)
 	case Bin:

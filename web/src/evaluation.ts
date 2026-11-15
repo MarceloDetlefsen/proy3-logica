@@ -12,6 +12,7 @@ export function createEvaluationUI(actions) {
   const button = $("#evaluate") as HTMLButtonElement;
   const ruleLabels = {
     pred: "Predicado",
+    eq: "Igualdad",
     not: "Negación",
     and: "Conjunción",
     or: "Disyunción",

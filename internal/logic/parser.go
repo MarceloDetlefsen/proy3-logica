@@ -152,6 +152,15 @@ func (p *formulaParser) parseAtom() (Formula, *LogicError) {
 	if syntaxErr != nil {
 		return nil, syntaxErr
 	}
+	if p.current().Type == EQUAL {
+		p.advance()
+		left := p.resolveTerm(name, args)
+		right, termErr := p.parseTerm()
+		if termErr != nil {
+			return nil, termErr
+		}
+		return Eq{Left: left, Right: right}, nil
+	}
 	p.resolvePredicate(name, args)
 	return Pred{Name: name.Text, Args: args}, nil
 }
@@ -189,32 +198,36 @@ func (p *formulaParser) parseTerm() (Term, *LogicError) {
 	if syntaxErr != nil {
 		return nil, syntaxErr
 	}
+	return p.resolveTerm(name, args), nil
+}
+
+func (p *formulaParser) resolveTerm(name Token, args []Term) Term {
 	if args == nil {
 		if arity, isFunction := p.lang.Funcs[name.Text]; isFunction {
 			if arity == 0 {
-				return App{Fn: name.Text, Args: []Term{}}, nil
+				return App{Fn: name.Text, Args: []Term{}}
 			}
 			p.addError(ARITY_MISMATCH, fmt.Sprintf("La función %q requiere aridad %d, pero se encontraron 0 argumentos.", name.Text, arity), name)
-			return App{Fn: name.Text, Args: []Term{}}, nil
+			return App{Fn: name.Text, Args: []Term{}}
 		}
 		if _, isPredicate := p.lang.Preds[name.Text]; isPredicate {
 			p.addError(WRONG_SYMBOL_KIND, fmt.Sprintf("El símbolo %q es un predicado, no una función.", name.Text), name)
-			return Var{Name: name.Text}, nil
+			return Var{Name: name.Text}
 		}
-		return Var{Name: name.Text}, nil
+		return Var{Name: name.Text}
 	}
 	if arity, isFunction := p.lang.Funcs[name.Text]; isFunction {
 		if arity != len(args) {
 			p.addError(ARITY_MISMATCH, fmt.Sprintf("La función %q requiere aridad %d, pero se encontraron %d argumentos.", name.Text, arity, len(args)), name)
 		}
-		return App{Fn: name.Text, Args: args}, nil
+		return App{Fn: name.Text, Args: args}
 	}
 	if _, isPredicate := p.lang.Preds[name.Text]; isPredicate {
 		p.addError(WRONG_SYMBOL_KIND, fmt.Sprintf("El símbolo %q es un predicado, no una función.", name.Text), name)
-		return App{Fn: name.Text, Args: args}, nil
+		return App{Fn: name.Text, Args: args}
 	}
 	p.addError(UNDECLARED_SYMBOL, fmt.Sprintf("El símbolo %q no está declarado.", name.Text), name)
-	return App{Fn: name.Text, Args: args}, nil
+	return App{Fn: name.Text, Args: args}
 }
 
 func (p *formulaParser) resolvePredicate(name Token, args []Term) {
@@ -270,6 +283,8 @@ func tokenName(kind TokenType) string {
 		return ")"
 	case COMMA:
 		return ","
+	case EQUAL:
+		return "="
 	case NOT:
 		return "¬"
 	case AND:

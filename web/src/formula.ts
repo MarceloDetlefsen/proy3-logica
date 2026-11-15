@@ -124,6 +124,11 @@ export function createFormulaUI(actions) {
       switch (node.k) {
         case "pred":
           return node.args.some((term) => termHasVariable(term, variable));
+        case "eq":
+          return (
+            termHasVariable(node.left, variable) ||
+            termHasVariable(node.right, variable)
+          );
         case "not":
           return hasFreeOccurrence(node.f, variable);
         case "bin":
@@ -139,6 +144,8 @@ export function createFormulaUI(actions) {
     };
     const visit = (node: Formula, bound: Set<string>) => {
       switch (node.k) {
+        case "eq":
+          break;
         case "not":
           visit(node.f, bound);
           break;

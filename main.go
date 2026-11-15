@@ -70,6 +70,7 @@ func newServer() http.Handler {
 	server.HandleFunc("/api/interpretation/validate", validateInterpretationHandler)
 	server.HandleFunc("/api/interpretation/generate", generateInterpretationHandler)
 	server.HandleFunc("/api/evaluate", evaluateHandler)
+	server.HandleFunc("/api/models/search", searchModelsHandler)
 	server.HandleFunc("/api/evaluate/export/pdf", exportEvaluationPDFHandler)
 	return server
 }

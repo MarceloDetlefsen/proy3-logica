@@ -77,6 +77,28 @@ type EvaluateResponse struct {
 	Result   *EvaluateResult `json:"result,omitempty"`
 }
 
+type ModelSearchRequest struct {
+	Language      Language `json:"language"`
+	Input         string   `json:"input"`
+	MaxDomainSize int      `json:"maxDomainSize"`
+}
+
+type ModelSearchExample struct {
+	Interpretation Interpretation `json:"interpretation"`
+	Env            Env            `json:"env"`
+}
+
+type ModelSearchResponse struct {
+	Satisfying    *ModelSearchExample `json:"satisfying,omitempty"`
+	Falsifying    *ModelSearchExample `json:"falsifying,omitempty"`
+	Checked       int                 `json:"checked"`
+	Evaluated     int                 `json:"evaluated"`
+	MaxDomainSize int                 `json:"maxDomainSize"`
+	Complete      bool                `json:"complete"`
+	LimitReached  bool                `json:"limitReached"`
+	Errors        []LogicError        `json:"errors"`
+}
+
 const (
 	DOMAIN_EMPTY           = "DOMAIN_EMPTY"
 	DOMAIN_SIZE_INVALID    = "DOMAIN_SIZE_INVALID"

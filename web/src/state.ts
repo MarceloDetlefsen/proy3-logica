@@ -8,6 +8,7 @@ import type {
   Interpretation,
   Language,
   LogicError,
+  ModelSearchResponse,
   InterpretationGenerateRequest,
   InterpretationGenerateResponse,
   ValidateLanguageRequest,
@@ -122,6 +123,10 @@ export function request(
     env: Env;
   },
 ): Promise<EvaluateResponse>;
+export function request(
+  path: "/api/models/search",
+  body: { input: string; language: Language; maxDomainSize: number },
+): Promise<ModelSearchResponse>;
 export async function request(path: string, body: unknown, signal?: AbortSignal): Promise<any> {
   if (state.mockMode) {
     return mockRequest(path, body);

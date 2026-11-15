@@ -165,6 +165,22 @@ Regla estricta: si `errors` no está vacío, `result` no existe. Una entrada
 incorrecta nunca recibe un valor de verdad. `freeVars` también es una lista no
 nula cuando existe `result`.
 
+### Buscar modelos y contramodelos
+
+`POST /api/models/search` recibe `language`, `input` y `maxDomainSize` (`N`).
+Enumera dominios de tamaño 1 hasta N y todas las interpretaciones posibles
+dentro del presupuesto de búsqueda, incluyendo las asignaciones de variables
+libres. La respuesta incluye, por separado, el primer modelo que hace verdadera
+la fórmula y el primer contramodelo que la hace falsa, con su interpretación y
+entorno.
+
+El buscador revisa como máximo 2 000 interpretaciones, 5 000 asignaciones de
+variables y tablas con hasta 128 filas por símbolo. `complete: true` indica que la búsqueda recorrió el rango
+solicitado o que encontró ambos ejemplos; `limitReached: true` indica que se
+detuvo por uno de esos límites. Una respuesta parcial puede incluir un modelo o
+contramodelo encontrado, pero no permite concluir que no existe el otro. Si
+ambos aparecen, la búsqueda se detiene al encontrarlos.
+
 ## Códigos de error del evaluador
 
 | Código | Significado |

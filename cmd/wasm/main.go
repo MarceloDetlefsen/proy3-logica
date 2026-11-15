@@ -19,6 +19,7 @@ func main() {
 	api.Set("validateInterpretation", js.FuncOf(wrapJSON(handleValidateInterpretation)))
 	api.Set("generateInterpretation", js.FuncOf(wrapJSON(handleGenerateInterpretation)))
 	api.Set("evaluate", js.FuncOf(wrapJSON(handleEvaluate)))
+	api.Set("searchModels", js.FuncOf(wrapJSON(handleSearchModels)))
 	api.Set("exportEvaluationTeX", js.FuncOf(wrapJSON(handleExportEvaluationTeX)))
 
 	js.Global().Set("proy3Wasm", api)
@@ -85,6 +86,14 @@ func handleEvaluate(input string) (any, int, error) {
 		return nil, 400, errors.New("El cuerpo JSON no es válido.")
 	}
 	return logic.EvaluateFormula(body), 200, nil
+}
+
+func handleSearchModels(input string) (any, int, error) {
+	var body logic.ModelSearchRequest
+	if err := decodeStrictJSON(input, &body); err != nil {
+		return nil, 400, errors.New("El cuerpo JSON no es válido.")
+	}
+	return logic.SearchModels(body), 200, nil
 }
 
 func handleExportEvaluationTeX(input string) (any, int, error) {

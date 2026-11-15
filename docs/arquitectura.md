@@ -67,9 +67,11 @@
 
 ### Frontend (`web/`)
 
-- [`web/index.html`](../web/index.html), [`web/app.css`](../web/app.css), [`web/theme.css`](../web/theme.css): Estructura de 4 fases, landing, temas Liquid Glass y barra lateral de resumen.
+- [`web/index.html`](../web/index.html), [`web/app.css`](../web/app.css), [`web/theme.css`](../web/theme.css), [`web/history.css`](../web/history.css): Estructura de 4 fases, landing, temas Liquid Glass, barra lateral y sección **Historia**.
+- [`web/assets/historia/`](../web/assets/historia/CREDITOS.md): Retratos locales optimizados y archivo de créditos para funcionamiento sin conexión.
 - [`web/types.ts`](../web/types.ts): Contratos TypeScript equivalentes a `internal/logic`.
 - [`web/src/api.ts`](../web/src/api.ts): Abstracción `Transport` (`HttpTransport` y `WasmTransport` sobre Web Worker).
 - [`web/src/worker.ts`](../web/src/worker.ts): Web Worker que carga `wasm_exec.js` y `logic.wasm`.
 - [`web/src/state.ts`](../web/src/state.ts): Estado global, modo `?mock=1` y utilidades DOM.
 - [`web/src/language.ts`](../web/src/language.ts), [`web/src/interpretation.ts`](../web/src/interpretation.ts), [`web/src/formula.ts`](../web/src/formula.ts), [`web/src/evaluation.ts`](../web/src/evaluation.ts), [`web/src/app.ts`](../web/src/app.ts): Módulos de UI por fase.
+- [`web/src/history/`](../web/src/history/view.ts): Submódulo de la sección **Historia** (`chapters.ts`, `view.ts`, `logic.ts`, `demos.ts`), validado por [`scripts/history-logic.test.mjs`](../scripts/history-logic.test.mjs) y [`history_assets_test.go`](../history_assets_test.go).

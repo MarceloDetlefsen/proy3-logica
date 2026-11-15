@@ -15,7 +15,8 @@
 - [`web/src/interpretation.ts`](../web/src/interpretation.ts): Chips del dominio, tablas de funciones totales y relaciones, y botón de generación aleatoria.
 - [`web/src/formula.ts`](../web/src/formula.ts): Editor de fórmula con resaltado de rango de error, barra de inserción en cursor (`¬`, `∧`, `∨`, `→`, `↔`, `∀`, `∃`, `=`, `(`, `)`), selectores de entorno para variables libres y generador de fórmulas aleatorias.
 - [`web/src/evaluation.ts`](../web/src/evaluation.ts): Lista de requisitos bloqueantes, ejecución de `/api/evaluate`, renderizado del árbol de explicación paso a paso, búsqueda acotada de modelos y contramodelos en el bloque `#model-search` (ubicado dentro de la fase `#evaluation` debajo de `#result`, con límite `#model-search-limit` y estado `#model-search-status`) mediante `/api/models/search`, y botón de exportación (PDF en modo HTTP, `.tex` en modo WASM).
-- [`web/src/app.ts`](../web/src/app.ts): Navegación entre fases, temas Liquid Glass (`grafito`, `medianoche`, `obsidiana`, `tinta`, `papel`), cargador de ejemplos (`examples/*.json`), lecciones y tutorial.
+- [`web/src/app.ts`](../web/src/app.ts): Navegación entre fases, temas Liquid Glass (`grafito`, `medianoche`, `obsidiana`, `tinta`, `papel`), cargador de ejemplos (`examples/*.json`), lecciones, sección **Historia** (`#toggle-history`, `#history-view`) y tutorial.
+- [`web/src/history/`](../web/src/history/view.ts) y [`web/history.css`](../web/history.css): Línea de tiempo de 11 capítulos (`chapters.ts`, `view.ts`), animaciones interactivas (`logic.ts`, `demos.ts`) que respetan `prefers-reduced-motion`, autoevaluaciones y carga directa de presets en el evaluador.
 
 ## Errores y accesibilidad
 

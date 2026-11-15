@@ -99,6 +99,15 @@
 7. **¿Si no encuentra contramodelo hasta `N = 3`, demuestra que la fórmula es válida?** No. Solo prueba que no tiene contramodelo en dominios de tamaño $\le 3$ dentro del presupuesto; una fórmula puede ser falsa únicamente en dominios mayores o infinitos.
 8. **¿Funciona igual en GitHub Pages (WASM) que en el servidor Go?** Sí: `cmd/wasm/main.go` expone `searchModels`, el Web Worker lo ejecuta fuera del hilo principal y `WasmTransport` aplica el timeout de 10 s.
 
+### 8. Sección Historia
+
+1. **¿Cómo garantizan que la sección Historia funcione sin internet ni dependencias externas?** Todos los retratos están optimizados localmente en [`web/assets/historia/`](../web/assets/historia/CREDITOS.md) y [`history_assets_test.go`](../history_assets_test.go) falla si detecta enlaces externos en tiempo de ejecución o imágenes faltantes.
+2. **¿Cómo verificaron las fechas e información histórica?** Con fuentes académicas de referencia (*Stanford Encyclopedia of Philosophy* y *MacTutor History of Mathematics*), distinguiendo explícitamente entre el Teorema de Completitud (1929/1930) y los Teoremas de Incompletitud (1931), así como la mejora de Rosser (1936).
+3. **¿La codificación de Gödel es real o simulada?** Es matemática real con `BigInt` en [`web/src/history/logic.ts`](../web/src/history/logic.ts): `encodeGodel` multiplica potencias de primos consecutivos y `decodeGodel` reconstruye la fórmula exacta mediante factorización.
+4. **¿Cómo se conecta Historia con el motor lógico del proyecto?** Los botones de los capítulos de Frege/Tarski, Russell e Hilbert/Legado cargan fórmulas y estructuras reales en el evaluador y ejecutan `/api/evaluate` o `/api/models/search`.
+5. **¿Qué ocurre si el usuario activa `prefers-reduced-motion`?** [`web/src/history/demos.ts`](../web/src/history/demos.ts) desactiva los intervalos automáticos y permite avanzar paso a paso manualmente.
+6. **¿Cómo se prueban las demos de Historia en CI?** [`scripts/history-logic.test.mjs`](../scripts/history-logic.test.mjs) corre dentro de [`scripts/verify-pages.sh`](../scripts/verify-pages.sh) usando `node:test` y ejecutando los presets sobre `dist/logic.wasm`.
+
 ---
 
 ## Guion de demostración de 3 minutos

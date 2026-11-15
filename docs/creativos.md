@@ -74,3 +74,13 @@
 - **Justificación:** Complementa la evaluación puntual permitiendo descubrir modelos y contramodelos automáticamente bajo cotas seguras (`MaxSearchedInterpretations = 2000`, `MaxSearchedEvaluations = 5000`, `maxSearchTableEntries = 128`).
 - **Limitaciones:** La enumeración crece combinatoriamente con la aridad y el tamaño del dominio; si alcanza el presupuesto, marca `limitReached: true` y `complete: false`.
 - **Demostración en 1 minuto:** Escribir `∀x P(x)`, elegir `N = 2` en **Buscar modelo y contramodelo** y mostrar ambos resultados encontrados con sus tablas y asignaciones.
+
+## 7. Sección interactiva "Historia: de Euclides a Turing"
+
+- **Qué es:** Recorrido histórico de 11 capítulos sobre la crisis de los fundamentos y los límites de la computación (de Euclides y las geometrías no euclideanas hasta Gödel, Turing y Church), con retratos locales, animaciones controlables, autoevaluación por capítulo y ejemplos cargables en el evaluador y el buscador de modelos.
+- **Valor que aporta:** Conecta directamente la teoría del curso (semántica de Tarski, indecidibilidad, por qué el proyecto restringe dominios finitos y presupuestos) con demostraciones prácticas dentro de la misma aplicación.
+- **Cómo se implementó:** Datos y vista en [`web/src/history/chapters.ts`](../web/src/history/chapters.ts) y [`web/src/history/view.ts`](../web/src/history/view.ts), lógica pura y animaciones en [`web/src/history/logic.ts`](../web/src/history/logic.ts) y [`web/src/history/demos.ts`](../web/src/history/demos.ts), estilos en [`web/history.css`](../web/history.css) y retratos locales en [`web/assets/historia/CREDITOS.md`](../web/assets/historia/CREDITOS.md). Más detalle en [`docs/historia.md`](historia.md).
+- **Cómo se probó:** [`history_assets_test.go`](../history_assets_test.go) verifica integridad de retratos, pesos y ausencia de URLs externas; [`scripts/history-logic.test.mjs`](../scripts/history-logic.test.mjs) prueba `encodeGodel`/`decodeGodel`, diagonalización de Cantor, máquina de Turing y la ejecución de los presets en `dist/logic.wasm`.
+- **Justificación:** Explica de forma visual y verificable por qué evaluar modelos finitos es decidible mientras la validez general de primer orden no lo es.
+- **Limitaciones:** La codificación de Gödel interactiva admite hasta 10 símbolos de un alfabeto didáctico de 12 símbolos para mantener legible el entero `BigInt`; la máquina de Turing incluida ilustra suma unaria.
+- **Demostración en 1 minuto:** Abrir **Historia**, mostrar la diagonalización de Cantor o el codificador de Gödel (`0=0`), y pulsar **Probar en buscador** en el capítulo de Russell para comprobar que `∃b ∀x (Afeita(b,x) ↔ ¬Afeita(x,x))` no tiene modelos finitos.

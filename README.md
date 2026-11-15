@@ -265,9 +265,13 @@ Enumera interpretaciones finitas con dominios de tamaño `1` hasta `N` (`1 <= N 
 
 ### Aportes creativos adicionales
 
-Incluye igualdad lógica integrada (`=`), modo educativo de 6 lecciones, tutorial de 6 pasos, 5 temas visuales y modo `?mock=1`.
+Incluye igualdad lógica integrada (`=`), modo educativo de 6 lecciones, tutorial de 6 pasos, 5 temas visuales, modo `?mock=1` y la sección interactiva **Historia: de Euclides a Turing** (11 capítulos con retratos locales en [`web/assets/historia/`](web/assets/historia/CREDITOS.md), animaciones de diagonalización, cálculo lambda, máquina de Turing, codificador de Gödel con `BigInt` y presets conectados al evaluador y al buscador de modelos).
 
-Más detalle: [docs/creativos.md](docs/creativos.md)
+![Sección Historia: línea de tiempo y narrativa](docs/captures/historia.png)
+![Sección Historia: codificación de Gödel y demos interactivas](docs/captures/historia-godel.png)
+**Evidencia (capturas pendientes de tomar por el usuario):** `docs/captures/historia.png`, `docs/captures/historia-godel.png`
+
+Más detalle: [docs/historia.md](docs/historia.md) · [docs/creativos.md](docs/creativos.md)
 
 ---
 
@@ -324,12 +328,14 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 │   ├── evaluador.md                      # Semántica de Tarski, errores y ejemplos a mano
 │   ├── explicacion.md                    # Construcción de testigos, contraejemplos y recorte
 │   ├── exportacion-pdf.md                # Plantilla LaTeX, paquetes TeX y endurecimiento
+│   ├── historia.md                       # Arco de 11 capítulos, demos interactivas y recursos locales
 │   ├── parser.md                         # Gramática, precedencia, aliases y offsets en runes
 │   ├── rendimiento.md                    # Benchmarks con testing.B y límites observados
 │   └── captures/                         # Capturas reales de la interfaz enlazadas en el README
 ├── docs_test.go                          # Verificación automática de enlaces y rutas en docs
 ├── export_pdf.go                         # Invocación segura de pdflatex con timeout y -no-shell-escape
 ├── export_pdf_bench_test.go              # Benchmark de generación .tex
+├── history_assets_test.go                # Verifica retratos locales, pesos y ausencia de URLs externas
 ├── go.mod                                # Módulo Go 1.27 (cero dependencias externas)
 ├── internal/
 │   └── logic/
@@ -355,14 +361,18 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
 │   ├── build-pages.sh                    # Genera dist/ (TS + logic.wasm + wasm_exec.js + config.js)
 │   ├── check-pages.sh                    # Verifica rutas relativas y archivos obligatorios en dist/
 │   ├── docker-smoke.sh                   # Levanta el contenedor y valida /healthz, evaluación y %PDF
+│   ├── history-logic.test.mjs            # Pruebas unitarias de Historia y presets sobre logic.wasm
 │   ├── verify-pages.sh                   # Verificación unificada de WASM para ci.yml y pages.yml
 │   └── wasm-smoke.mjs                    # Prueba logic.wasm en Node con fixtures de testdata/
 ├── testdata/
 │   └── examples/                         # 18 fixtures JSON válidos e inválidos (ej. universal-verdadero.json)
 ├── types.go                              # Tipos heredados sin uso activo (código muerto)
 └── web/
-    ├── index.html                        # Estructura de las 4 fases, ejemplos, lecciones y tutorial
+    ├── assets/
+    │   └── historia/                     # 11 retratos locales optimizados y CREDITOS.md
+    ├── index.html                        # Estructura de las 4 fases, ejemplos, lecciones e Historia
     ├── app.css                           # Estilos de componentes y disposición
+    ├── history.css                       # Estilos de la sección Historia y animaciones
     ├── theme.css                         # Sistema visual Liquid Glass y 5 temas
     ├── config.js                         # Selección de backend ("http" por defecto; "wasm" en Pages)
     ├── types.ts                          # Tipos TypeScript espejados de internal/logic
@@ -372,6 +382,7 @@ Más detalle: [docs/creativos.md](docs/creativos.md)
         ├── app.ts                        # Navegación de fases, ejemplos, temas y tutorial
         ├── evaluation.ts                 # Evaluación, árbol paso a paso y exportación PDF/.tex
         ├── formula.ts                    # Editor, inserción de símbolos, entorno y fórmula aleatoria
+        ├── history/                      # Capítulos, vista, lógica pura y demos de Historia
         ├── interpretation.ts             # Dominio en chips, tablas y modelo aleatorio
         ├── language.ts                   # Alta/baja de funciones y predicados
         ├── state.ts                      # Estado global, debounce y modo ?mock=1

@@ -384,7 +384,44 @@ export function createInterpretationUI(actions) {
     actions.analyze();
   }
 
+  async function generateInterpretation() {
+    const button = $("#generate-interpretation") as HTMLButtonElement;
+    const sizeField = $("#generation-domain-size") as HTMLInputElement;
+    const status = $("#generation-status");
+    const domainSize = Number(sizeField.value);
+    if (!Number.isInteger(domainSize) || domainSize < 1 || domainSize > 100) {
+      status.textContent = "El tamaño debe ser un entero entre 1 y 100.";
+      status.className = "generation-status error";
+      sizeField.focus();
+      return;
+    }
+    button.disabled = true;
+    status.textContent = "Generando tablas…";
+    status.className = "generation-status";
+    try {
+      const result = await request("/api/interpretation/generate", {
+        language: currentLanguage(),
+        domainSize,
+      });
+      if (result.errors.length) {
+        status.textContent = result.errors.map((error) => `${error.path ? `${error.path}: ` : ""}${error.message}`).join(" ");
+        status.className = "generation-status error";
+        return;
+      }
+      if (!result.interpretation) throw new Error("El generador no devolvió una interpretación.");
+      loadInterpretation(result.interpretation);
+      status.textContent = `Interpretación generada. Semilla: ${result.seed}.`;
+      status.className = "generation-status valid";
+    } catch (error) {
+      status.textContent = error.message;
+      status.className = "generation-status error";
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   $("#add-domain").addEventListener("click", addDomain);
+  $("#generate-interpretation").addEventListener("click", generateInterpretation);
   $("#domain-input").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -392,5 +429,5 @@ export function createInterpretationUI(actions) {
     }
   });
 
-  return { renderTables, validate, renderDomain, load: loadInterpretation };
+  return { renderTables, validate, renderDomain, load: loadInterpretation, generate: generateInterpretation };
 }

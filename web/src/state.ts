@@ -7,6 +7,8 @@ import type {
   Interpretation,
   Language,
   LogicError,
+  InterpretationGenerateRequest,
+  InterpretationGenerateResponse,
   ValidateLanguageRequest,
   ValidateLanguageResponse,
 } from "../types.js";
@@ -103,6 +105,10 @@ export function request(
   warnings: { message: string; path?: string }[];
 }>;
 export function request(
+  path: "/api/interpretation/generate",
+  body: InterpretationGenerateRequest,
+): Promise<InterpretationGenerateResponse>;
+export function request(
   path: "/api/analyze",
   body: { input: string; language: Language },
 ): Promise<AnalyzeResponse>;
@@ -132,6 +138,9 @@ export async function request(path: string, body: unknown): Promise<any> {
 }
 
 function mockRequest(path: string, body: any): Promise<any> {
+  if (path === "/api/interpretation/generate") {
+    return Promise.resolve(mockGenerateInterpretation(body));
+  }
   const example = state.example;
   if (!example) {
     if (path === "/api/language/validate") {
@@ -208,6 +217,78 @@ function mockRequest(path: string, body: any): Promise<any> {
     });
   }
   return Promise.reject(new Error(`Endpoint mock desconocido: ${path}`));
+}
+
+function mockGenerateInterpretation(body: any) {
+  const domainSize = body.domainSize ?? 3;
+  const seed = body.seed ?? Date.now();
+  const errors: LogicError[] = [];
+  if (!Number.isInteger(domainSize) || domainSize < 1) {
+    errors.push({ code: "DOMAIN_SIZE_INVALID", message: "El tamaño del dominio debe ser al menos 1.", start: 0, end: 0, path: "domainSize" });
+  } else if (domainSize > 100) {
+    errors.push({ code: "LIMIT_EXCEEDED", message: "El dominio solicitado supera el máximo de 100 elementos.", start: 0, end: 0, path: "domainSize" });
+  }
+  if (errors.length) return { seed, errors };
+
+  const domain = Array.from({ length: domainSize }, (_, index) => `d${index}`);
+  const funcs: Record<string, { args: string[]; value: string }[]> = {};
+  const rels: Record<string, string[][]> = {};
+  const random = seededRandom(seed);
+  for (const [name, arity] of Object.entries(body.language.funcs || {})) {
+    const count = domainSize ** Number(arity);
+    if (!Number.isInteger(arity) || Number(arity) < 0 || Number(arity) > 1000 || count > 10000) {
+      errors.push({ code: "LIMIT_EXCEEDED", message: `No se puede generar la tabla de ${name} dentro del límite de 10 000 entradas.`, start: 0, end: 0, path: `funcs.${name}` });
+      continue;
+    }
+    funcs[name] = allTuples(domain, Number(arity)).map((args) => ({ args, value: domain[Math.floor(random() * domain.length)] }));
+  }
+  for (const [name, arityValue] of Object.entries(body.language.preds || {})) {
+    const arity = Number(arityValue);
+    if (!Number.isInteger(arity) || arity < 1) {
+      errors.push({ code: "INVALID_ARITY", message: `La aridad del predicado ${name} debe ser al menos 1.`, start: 0, end: 0 });
+      continue;
+    }
+    if (arity > 1000) {
+      errors.push({ code: "LIMIT_EXCEEDED", message: `La aridad del predicado ${name} excede el máximo generable de 1000.`, start: 0, end: 0, path: `preds.${name}` });
+      continue;
+    }
+    const count = domainSize ** arity;
+    if (count <= 10000) {
+      rels[name] = allTuples(domain, arity).filter(() => random() < 0.5);
+      if (!rels[name].length) rels[name] = [allTuples(domain, arity)[Math.floor(random() * count)]];
+    } else {
+      const target = 1 + Math.floor(random() * 1000);
+      const seen = new Set<string>();
+      rels[name] = [];
+      while (rels[name].length < target) {
+        const tuple = Array.from({ length: arity }, () => domain[Math.floor(random() * domain.length)]);
+        const key = JSON.stringify(tuple);
+        if (!seen.has(key)) { seen.add(key); rels[name].push(tuple); }
+      }
+    }
+  }
+  if (errors.length) return { seed, errors };
+  return { seed, errors, interpretation: { domain, funcs, rels } };
+}
+
+function seededRandom(seed: number) {
+  let value = Number(seed) >>> 0;
+  return () => {
+    value = (value + 0x6d2b79f5) >>> 0;
+    let t = value;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function allTuples(domain: string[], arity: number): string[][] {
+  if (arity === 0) return [[]];
+  let tuples: string[][] = [[]];
+  for (let position = 0; position < arity; position++) {
+    tuples = tuples.flatMap((prefix) => domain.map((value) => [...prefix, value]));
+  }
+  return tuples;
 }
 
 function mockErrors(codes: string[]): LogicError[] {

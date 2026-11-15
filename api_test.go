@@ -125,7 +125,7 @@ func TestAnalyzeAPI(t *testing.T) {
 
 func TestAPIRejectsUnsupportedMethods(t *testing.T) {
 	server := newServer()
-	for _, path := range []string{"/api/language/validate", "/api/analyze"} {
+	for _, path := range []string{"/api/language/validate", "/api/analyze", "/api/interpretation/generate"} {
 		t.Run(path, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, path, nil)
 			recorder := httptest.NewRecorder()
@@ -134,5 +134,50 @@ func TestAPIRejectsUnsupportedMethods(t *testing.T) {
 				t.Fatalf("status: want %d, got %d", http.StatusMethodNotAllowed, recorder.Code)
 			}
 		})
+	}
+}
+
+func TestGenerateInterpretationAPI(t *testing.T) {
+	server := newServer()
+	request := httptest.NewRequest(http.MethodPost, "/api/interpretation/generate", strings.NewReader(`{"language":{"funcs":{"c":0,"f":1},"preds":{"P":1}},"domainSize":2,"seed":42}`))
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status: want %d, got %d; body=%s", http.StatusOK, recorder.Code, recorder.Body.String())
+	}
+	var response struct {
+		Interpretation struct {
+			Domain []string `json:"domain"`
+			Funcs  map[string][]struct {
+				Args  []string `json:"args"`
+				Value string   `json:"value"`
+			} `json:"funcs"`
+			Rels map[string][][]string `json:"rels"`
+		} `json:"interpretation"`
+		Seed   int64 `json:"seed"`
+		Errors []struct {
+			Code string `json:"code"`
+		} `json:"errors"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if len(response.Errors) != 0 {
+		t.Fatalf("unexpected errors: %#v", response.Errors)
+	}
+	if response.Seed != 42 {
+		t.Fatalf("seed: want 42, got %d", response.Seed)
+	}
+	if len(response.Interpretation.Domain) != 2 {
+		t.Fatalf("domain size: want 2, got %v", response.Interpretation.Domain)
+	}
+	if len(response.Interpretation.Funcs["c"]) != 1 || len(response.Interpretation.Funcs["c"][0].Args) != 0 {
+		t.Fatalf("invalid constant table: %#v", response.Interpretation.Funcs["c"])
+	}
+	if len(response.Interpretation.Funcs["f"]) != 2 {
+		t.Fatalf("unary table should contain 2 rows, got %#v", response.Interpretation.Funcs["f"])
+	}
+	if len(response.Interpretation.Rels["P"]) == 0 {
+		t.Fatalf("relation must not be empty: %#v", response.Interpretation.Rels)
 	}
 }

@@ -223,6 +223,143 @@ export function createFormulaUI(actions) {
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
+  async function generateRandomFormula() {
+    const button = $("#generate-formula") as HTMLButtonElement;
+    const status = $("#formula-generation-status");
+    button.disabled = true;
+    status.textContent = "Generando fórmula…";
+    status.className = "generation-status";
+    try {
+      const funcs = state.funcs
+        .filter((symbol) => symbol.name.trim())
+        .map((symbol) => ({ name: symbol.name.trim(), arity: Number(symbol.arity) }));
+      const preds = state.preds
+        .filter((symbol) => symbol.name.trim())
+        .map((symbol) => ({ name: symbol.name.trim(), arity: Number(symbol.arity) }));
+      const languageResult = await request("/api/language/validate", { funcs, preds });
+      if (languageResult.errors.length) {
+        status.textContent = languageResult.errors.map((error) => error.message).join(" ");
+        status.className = "generation-status error";
+        return;
+      }
+
+      // Use the normalized language assembled from the current declarations.
+      // The demo API returns submitted declarations while the real API returns
+      // maps; this keeps formula generation independent of that response shape.
+      const language = currentLanguage();
+      const generated = buildRandomFormula(language);
+      if (!state.mockMode) {
+        const analysis = await request("/api/analyze", { input: generated.input, language });
+        if (analysis.errors.length) {
+          status.textContent = `El analizador rechazó la fórmula generada: ${analysis.errors.map((error) => error.message).join(" ")}`;
+          status.className = "generation-status error";
+          return;
+        }
+        input.value = generated.input;
+        state.env = randomEnvironment(analysis.freeVars);
+        state.analysis = analysis;
+        state.formulaValid = true;
+        renderAnalysis(analysis);
+        actions.updateEvaluate();
+      } else {
+        input.value = generated.input;
+        state.env = randomEnvironment(generated.freeVars);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      status.textContent = "Fórmula aleatoria generada y validada.";
+      status.className = "generation-status valid";
+    } catch (error) {
+      status.textContent = error.message;
+      status.className = "generation-status error";
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function buildRandomFormula(language: { funcs: Record<string, number>; preds: Record<string, number> }) {
+    const functions = Object.entries(language.funcs);
+    const predicates = Object.entries(language.preds);
+    const reserved = new Set([...functions.map(([name]) => name), ...predicates.map(([name]) => name), "forall", "exists"]);
+    const usedVariables = new Set<string>();
+    const freeVariables = new Set<string>();
+    let variableIndex = 0;
+
+    const freshVariable = () => {
+      const candidates = ["x", "y", "z", "u", "v", "w", "t"];
+      while (true) {
+        const candidate = variableIndex < candidates.length ? candidates[variableIndex] : `v${variableIndex}`;
+        variableIndex++;
+        if (!reserved.has(candidate) && !usedVariables.has(candidate)) {
+          usedVariables.add(candidate);
+          return candidate;
+        }
+      }
+    };
+
+    const chooseVariable = (bound: string[]) => {
+      if (bound.length && Math.random() < 0.6) {
+        return bound[Math.floor(Math.random() * bound.length)];
+      }
+      const existingFree = [...freeVariables];
+      if (existingFree.length && Math.random() < 0.55) {
+        return existingFree[Math.floor(Math.random() * existingFree.length)];
+      }
+      const variable = freshVariable();
+      freeVariables.add(variable);
+      return variable;
+    };
+
+    const term = (bound: string[], depth = 0): string => {
+      const canUseFunction = depth < 1 && functions.length > 0 && Math.random() < 0.42;
+      if (canUseFunction) {
+        const [name, arity] = functions[Math.floor(Math.random() * functions.length)];
+        if (arity === 0) return name;
+        const args = Array.from({ length: arity }, () => term(bound, depth + 1));
+        return `${name}(${args.join(", ")})`;
+      }
+      const constants = functions.filter(([, arity]) => arity === 0);
+      if (constants.length && Math.random() < 0.2) {
+        return constants[Math.floor(Math.random() * constants.length)][0];
+      }
+      return chooseVariable(bound);
+    };
+
+    const atom = (bound: string[]) => {
+      if (predicates.length && Math.random() < 0.72) {
+        const [name, arity] = predicates[Math.floor(Math.random() * predicates.length)];
+        const args = Array.from({ length: arity }, () => term(bound));
+        return `${name}(${args.join(", ")})`;
+      }
+      return `${term(bound)} = ${term(bound)}`;
+    };
+
+    const formula = (depth: number, bound: string[]): string => {
+      if (depth <= 0) return atom(bound);
+      const choice = Math.floor(Math.random() * 8);
+      if (choice === 0) return `¬(${formula(depth - 1, bound)})`;
+      if (choice === 1) {
+        const variable = freshVariable();
+        const quantifier = Math.random() < 0.5 ? "∀" : "∃";
+        return `${quantifier}${variable} (${formula(depth - 1, [...bound, variable])})`;
+      }
+      const operators = ["∧", "∨", "→", "↔"];
+      const operator = operators[choice - 2] || "∧";
+      return `(${formula(depth - 1, bound)} ${operator} ${formula(depth - 1, bound)})`;
+    };
+
+    return { input: formula(2, []), freeVars: [...freeVariables] };
+  }
+
+  function randomEnvironment(variables: string[]) {
+    if (!state.domain.length) return {};
+    return Object.fromEntries(
+      variables.map((variable) => [
+        variable,
+        state.domain[Math.floor(Math.random() * state.domain.length)],
+      ]),
+    );
+  }
+
   input.addEventListener("input", () => {
     renderHighlight();
     analyze();
@@ -236,6 +373,7 @@ export function createFormulaUI(actions) {
       insertAtCursor((button as HTMLElement).dataset.insert || ""),
     );
   });
+  $("#generate-formula").addEventListener("click", generateRandomFormula);
 
-  return { analyze, load: loadFormula };
+  return { analyze, load: loadFormula, generateRandom: generateRandomFormula };
 }

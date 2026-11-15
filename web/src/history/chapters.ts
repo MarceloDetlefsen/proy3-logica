@@ -19,6 +19,7 @@ export interface HistoryChapter {
   title: string;
   subtitle: string;
   portraits: HistoryPortrait[];
+  visualKind?: "glider";
   narrative: string[];
   keyIdea: string;
   example: string;
@@ -485,9 +486,9 @@ export const HISTORY_CHAPTERS: HistoryChapter[] = [
     portraits: [
       {
         src: "assets/historia/church.svg",
-        alt: "Ilustración tipográfica con el símbolo lambda y las iniciales de Alonzo Church",
+        alt: "Ilustración conceptual del cálculo lambda con el operador λ y la regla de reducción beta",
         caption: "Alonzo Church (1903–1995)",
-        credit: "Ilustración SVG propia del equipo (λ / AC)"
+        credit: "Ilustración conceptual: cálculo lambda"
       }
     ],
     narrative: [
@@ -531,14 +532,8 @@ export const HISTORY_CHAPTERS: HistoryChapter[] = [
     year: "1936–hoy",
     title: "El legado en la computación",
     subtitle: "Sistemas simples con comportamiento impredecible",
-    portraits: [
-      {
-        src: "assets/historia/turing.jpg",
-        alt: "Retrato de Alan Turing como símbolo del nacimiento de la computación teórica",
-        caption: "De la lógica pura a la informática moderna",
-        credit: "Elliott & Fry · Wikimedia Commons (Dominio público)"
-      }
-    ],
+    portraits: [],
+    visualKind: "glider",
     narrative: [
       "Lejos de paralizar las matemáticas, los resultados de Gödel, Church y Turing fundaron las ciencias de la computación. De la máquina universal de Turing nació la idea del programa almacenado en memoria: una sola máquina capaz de ejecutar cualquier algoritmo.",
       "Incluso sistemas con reglas diminutas, como el Juego de la Vida de Conway (1970), pueden simular máquinas de Turing universales; por eso tampoco existe un algoritmo general que prediga si cualquier patrón inicial terminará desapareciendo o crecerá para siempre. Comprender esos límites nos enseña qué podemos automatizar y qué requiere fronteras finitas explícitas."

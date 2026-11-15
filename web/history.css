@@ -555,3 +555,33 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.glider-canvas-wrap {
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.glider-svg {
+  width: 100%;
+  max-width: 210px;
+  aspect-ratio: 1 / 1;
+  display: block;
+}
+
+.glider-cell {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: var(--line);
+  stroke-width: 0.7;
+}
+
+.glider-cell.alive {
+  fill: var(--history-accent, var(--accent));
+}
+
+.glider-controls {
+  display: flex;
+  gap: 6px;
+  padding: 0 10px 8px;
+  flex-wrap: wrap;
+}

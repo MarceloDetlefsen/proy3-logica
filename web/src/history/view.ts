@@ -3,7 +3,10 @@ import { HISTORY_CHAPTERS, type HistoryChapter } from "./chapters.js";
 
 const VISITED_KEY = "parcial3-history-visited-v1";
 
-export type HistoryRenderHook = (chapter: HistoryChapter, slots: { demoHost: HTMLElement; quizHost: HTMLElement }) => void;
+export type HistoryRenderHook = (
+  chapter: HistoryChapter,
+  slots: { demoHost: HTMLElement; quizHost: HTMLElement; portraitHost: HTMLElement }
+) => void;
 
 export interface HistoryController {
   open: (chapterId?: string) => void;
@@ -192,10 +195,11 @@ export function createHistoryUI(
     stage.querySelector("#history-prev-chapter")?.addEventListener("click", () => selectChapter(activeIndex - 1, true));
     stage.querySelector("#history-next-chapter")?.addEventListener("click", () => selectChapter(activeIndex + 1, true));
 
+    const portraitHost = stage.querySelector(".history-portraits") as HTMLElement;
     const demoHost = stage.querySelector("#history-demo-slot") as HTMLElement;
     const quizHost = stage.querySelector("#history-quiz-slot") as HTMLElement;
     if (renderHook) {
-      renderHook(chapter, { demoHost, quizHost });
+      renderHook(chapter, { demoHost, quizHost, portraitHost });
     }
 
     if (focusStage) {

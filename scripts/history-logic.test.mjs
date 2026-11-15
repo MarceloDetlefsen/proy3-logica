@@ -6,10 +6,13 @@ import { createRequire } from "node:module";
 
 import {
   cantorDiagonalStep,
+  createGliderGrid,
   createUnaryAdditionMachine,
   decodeGodel,
   encodeGodel,
   HISTORY_PRESETS,
+  liveCells,
+  stepLifeGrid,
   stepTuringMachine,
   triangleAngleSum
 } from "../web/build/src/history/logic.js";
@@ -49,6 +52,17 @@ test("triangleAngleSum refleja las tres geometrías", () => {
   assert.equal(triangleAngleSum("euclid", 25), 180);
   assert.ok(triangleAngleSum("spherical", 25) > 180);
   assert.ok(triangleAngleSum("hyperbolic", 25) < 180);
+});
+
+test("glider de Conway recupera su forma desplazado (+1, +1) tras 4 generaciones", () => {
+  let grid = createGliderGrid(8);
+  const initial = liveCells(grid);
+  for (let i = 0; i < 4; i++) {
+    grid = stepLifeGrid(grid);
+  }
+  const shifted = liveCells(grid);
+  const expected = initial.map(([r, c]) => [(r + 1) % 8, (c + 1) % 8]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  assert.deepEqual(shifted, expected);
 });
 
 test("presets de Historia se evalúan y buscan correctamente en WASM", async () => {
@@ -102,7 +116,7 @@ test("presets de Historia se evalúan y buscan correctamente en WASM", async () 
       JSON.stringify({
         language: order.language,
         input: order.input,
-        maxDomainSize: order.searchLimit ?? 2
+        maxDomainSize: 3
       })
     )
   );

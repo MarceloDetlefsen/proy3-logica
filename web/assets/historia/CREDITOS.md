@@ -14,4 +14,6 @@ Todas las imágenes se almacenan localmente en `web/assets/historia/` para funci
 | `tarski.jpg` | Alfred Tarski (1901–1983) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Alfred_Tarski_1968_(as-is,_cropped)_(cropped).jpg) | George Bergman (1968) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | `400x440` · 28.7 KB |
 | `godel.jpg` | Kurt Gödel (1906–1978) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Kurt_g%C3%B6del.jpg) | Autor desconocido | Dominio público (`Public domain`) | `212x270` · 7.3 KB |
 | `turing.jpg` | Alan Turing (1912–1954) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Alan_turing_header.jpg) | Elliott & Fry (1951) | Dominio público (`Public domain`) | `360x480` · 30.0 KB |
-| `church.svg` | Alonzo Church (1903–1995) | Ilustración SVG tipográfica propia (`λ / AC`) | Equipo del proyecto | Propia del repositorio | Vectorial (`360x440`) · 0.9 KB |
+| `church.svg` | Alonzo Church (1903–1995) | Ilustración conceptual: cálculo lambda (`(λx. M) N →β M[x := N]`) | Equipo del proyecto | Propia del repositorio | Vectorial (`360x450`) · 1.5 KB |
+
+Capítulo 11 utiliza una animación SVG propia en tiempo real del planeador (*glider*) del Juego de la Vida de Conway (`web/src/history/demos.ts` + `web/src/history/logic.ts`), sin repetir retratos de capítulos anteriores.

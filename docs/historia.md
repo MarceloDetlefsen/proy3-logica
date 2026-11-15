@@ -28,8 +28,12 @@
   - `HISTORY_PRESETS`: casos `syllogism`, `barber` e `infinite_order` listos para cargar en el evaluador o en `SearchModels`.
 - [`web/src/history/demos.ts`](../web/src/history/demos.ts): Controles `Reproducir / Pausar`, `Paso` y `Reiniciar` (respetando `prefers-reduced-motion`), botones **"Cargar en el evaluador"** / **"Probar en buscador"** y tarjetas de autoevaluación.
 
-## Recursos locales y pruebas
+## Recursos locales, galería y pruebas
 
-- Todos los retratos se almacenan en [`web/assets/historia/`](../web/assets/historia/CREDITOS.md) (10 retratos de Wikimedia Commons en Dominio Público / CC BY-SA 4.0 optimizados a $\le 480\text{ px}$ y $\le 34\text{ KB}$ cada uno, más `church.svg` propio).
-- [`history_assets_test.go`](../history_assets_test.go) comprueba que cada retrato exista en disco, pese $\le 60\text{ KB}$, figure en `CREDITOS.md`, tenga `alt` no vacío y que no existan URLs externas en tiempo de ejecución en `web/`.
-- [`scripts/history-logic.test.mjs`](../scripts/history-logic.test.mjs) ejecuta pruebas unitarias con `node:test` y valida `HISTORY_PRESETS` directamente contra `dist/logic.wasm` (`proy3Wasm.evaluate` y `proy3Wasm.searchModels`).
+- **Política de imágenes y auditoría de galería:** Cada capítulo usa un visual distinto sin repeticiones innecesarias:
+  - Capítulos 01–09: retratos locales optimizados desde Wikimedia Commons (`euclides.jpg`, `gauss.jpg`, `lobachevsky.jpg`, `cantor.jpg`, `frege.jpg`, `russell.jpg`, `hilbert.jpg`, `tarski.jpg`, `godel.jpg`, `turing.jpg`), todos en Dominio Público o `CC BY-SA 4.0`, $\le 480\text{ px}$ y $\le 34\text{ KB}$ cada uno.
+  - Capítulo 10 (`church.svg`): tras verificar en Wikidata (`Q92741`) y Wikimedia Commons que no existe fotografía con licencia libre del lógico Alonzo Church (1903–1995), se diseñó una ilustración vectorial conceptual del cálculo lambda con las mismas proporciones (`4:5`) y pie *"Ilustración conceptual: cálculo lambda"*.
+  - Capítulo 11: en lugar de repetir el retrato de Turing, muestra una animación SVG propia de un planeador (*glider*) del Juego de la Vida de Conway con controles de reproducir, pausar y paso a paso (`prefers-reduced-motion` muestra fotograma estático con avance manual) y pie *"Ilustración propia: planeador (glider) del Juego de la Vida"*.
+- Todos los recursos gráficos viven en [`web/assets/historia/`](../web/assets/historia/CREDITOS.md) sin URLs externas en tiempo de ejecución.
+- [`history_assets_test.go`](../history_assets_test.go) comprueba que cada retrato exista en disco, no se repita entre capítulos, pese $\le 60\text{ KB}$, figure en `CREDITOS.md`, tenga `alt` no vacío y que no existan URLs externas en tiempo de ejecución en `web/`.
+- [`scripts/history-logic.test.mjs`](../scripts/history-logic.test.mjs) ejecuta pruebas unitarias con `node:test` (incluyendo el ciclo de 4 generaciones del *glider* de Conway) y valida `HISTORY_PRESETS` directamente contra `dist/logic.wasm` (`proy3Wasm.evaluate` y `proy3Wasm.searchModels`, incluyendo `N = 3`).

@@ -2,11 +2,13 @@ import { escapeHTML } from "../state.js";
 import type { HistoryChapter } from "./chapters.js";
 import {
   cantorDiagonalStep,
+  createGliderGrid,
   createUnaryAdditionMachine,
   decodeGodel,
   encodeGodel,
   GODEL_ALPHABET,
   HISTORY_PRESETS,
+  stepLifeGrid,
   stepTuringMachine,
   triangleAngleSum,
   type HistoryPreset
@@ -357,13 +359,108 @@ function renderQuiz(quizHost: HTMLElement, chapter: HistoryChapter) {
   quizHost.replaceChildren(card);
 }
 
+function renderGliderVisual(host: HTMLElement) {
+  const size = 8;
+  let grid = createGliderGrid(size);
+  let generation = 0;
+  let timer: number | null = null;
+  const reduced = prefersReducedMotion();
+
+  const figure = document.createElement("figure");
+  figure.className = "history-portrait glider-figure";
+  figure.innerHTML = `
+    <div class="glider-canvas-wrap">
+      <svg class="glider-svg" viewBox="0 0 160 160" role="img" aria-label="Animación de un planeador (glider) en el Juego de la Vida de Conway"></svg>
+    </div>
+    <div class="glider-controls">
+      <button class="button small primary" id="glider-play" type="button">${reduced ? "Animar" : "Reproducir"}</button>
+      <button class="button small" id="glider-step" type="button">Paso</button>
+      <button class="button small" id="glider-reset" type="button">Reiniciar</button>
+    </div>
+    <figcaption>
+      <strong>Ilustración propia: planeador (glider) del Juego de la Vida</strong>
+      <span id="glider-gen">Generación 0</span>
+    </figcaption>
+  `;
+
+  const svg = figure.querySelector(".glider-svg") as SVGSVGElement;
+  const playBtn = figure.querySelector("#glider-play") as HTMLButtonElement;
+  const genLabel = figure.querySelector("#glider-gen") as HTMLElement;
+
+  function draw() {
+    const cell = 20;
+    const rects: string[] = [];
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const alive = grid[r][c];
+        rects.push(
+          `<rect x="${c * cell + 1}" y="${r * cell + 1}" width="${cell - 2}" height="${cell - 2}" rx="3" class="${alive ? "glider-cell alive" : "glider-cell"}" />`,
+        );
+      }
+    }
+    svg.innerHTML = rects.join("");
+    genLabel.textContent = `Generación ${generation}`;
+  }
+
+  function stop() {
+    if (timer !== null) {
+      window.clearInterval(timer);
+      timer = null;
+    }
+    playBtn.textContent = "Reproducir";
+  }
+
+  playBtn.addEventListener("click", () => {
+    if (timer !== null) {
+      stop();
+      return;
+    }
+    if (prefersReducedMotion()) {
+      grid = stepLifeGrid(grid);
+      generation++;
+      draw();
+      return;
+    }
+    playBtn.textContent = "Pausar";
+    timer = window.setInterval(() => {
+      if (!document.body.contains(figure)) {
+        stop();
+        return;
+      }
+      grid = stepLifeGrid(grid);
+      generation++;
+      draw();
+    }, 320);
+  });
+
+  figure.querySelector("#glider-step")?.addEventListener("click", () => {
+    stop();
+    grid = stepLifeGrid(grid);
+    generation++;
+    draw();
+  });
+
+  figure.querySelector("#glider-reset")?.addEventListener("click", () => {
+    stop();
+    grid = createGliderGrid(size);
+    generation = 0;
+    draw();
+  });
+
+  draw();
+  host.replaceChildren(figure);
+}
+
 export function attachHistoryDemos(
   chapter: HistoryChapter,
-  slots: { demoHost: HTMLElement; quizHost: HTMLElement },
+  slots: { demoHost: HTMLElement; quizHost: HTMLElement; portraitHost?: HTMLElement },
   actions: HistoryHostActions
 ) {
-  const { demoHost, quizHost } = slots;
+  const { demoHost, quizHost, portraitHost } = slots;
   demoHost.replaceChildren();
+  if (chapter.visualKind === "glider" && portraitHost) {
+    renderGliderVisual(portraitHost);
+  }
 
   switch (chapter.demoKind) {
     case "euclid":

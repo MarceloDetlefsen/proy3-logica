@@ -26,8 +26,13 @@ func TestHistoryAssetsAndNoExternalRuntimeURLs(t *testing.T) {
 	if len(matches) == 0 {
 		t.Fatal("no se encontraron retratos en chapters.ts")
 	}
+	seen := make(map[string]bool)
 	for _, m := range matches {
 		rel := m[1]
+		if seen[rel] {
+			t.Errorf("retrato repetido entre capítulos: %s", rel)
+		}
+		seen[rel] = true
 		diskPath := filepath.Join("web", filepath.FromSlash(rel))
 		info, err := os.Stat(diskPath)
 		if err != nil {

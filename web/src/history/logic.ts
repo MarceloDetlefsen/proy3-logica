@@ -238,3 +238,47 @@ export function triangleAngleSum(geometry: "euclid" | "spherical" | "hyperbolic"
   if (geometry === "hyperbolic") return 180 - delta;
   return 180;
 }
+
+export function createGliderGrid(size = 8): boolean[][] {
+  const grid = Array.from({ length: size }, () => Array.from({ length: size }, () => false));
+  const coords: [number, number][] = [
+    [0, 1],
+    [1, 2],
+    [2, 0],
+    [2, 1],
+    [2, 2],
+  ];
+  for (const [r, c] of coords) {
+    if (r < size && c < size) grid[r][c] = true;
+  }
+  return grid;
+}
+
+export function stepLifeGrid(grid: boolean[][]): boolean[][] {
+  const rows = grid.length;
+  const cols = rows > 0 ? grid[0].length : 0;
+  return grid.map((row, r) =>
+    row.map((alive, c) => {
+      let neighbors = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = (r + dr + rows) % rows;
+          const nc = (c + dc + cols) % cols;
+          if (grid[nr][nc]) neighbors++;
+        }
+      }
+      return alive ? neighbors === 2 || neighbors === 3 : neighbors === 3;
+    }),
+  );
+}
+
+export function liveCells(grid: boolean[][]): [number, number][] {
+  const cells: [number, number][] = [];
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[r].length; c++) {
+      if (grid[r][c]) cells.push([r, c]);
+    }
+  }
+  return cells;
+}

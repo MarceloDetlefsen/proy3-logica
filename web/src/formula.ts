@@ -15,6 +15,8 @@ export function createFormulaUI(actions) {
   const highlight = $("#formula-highlight");
 
   function renderHighlight(errors: { start: number; end: number }[] = []) {
+    // Array.from separa por caracteres Unicode, igual que []rune en Go. Así los
+    // offsets del lexer resaltan correctamente ∀, ¬, → y demás símbolos.
     const characters = Array.from(input.value);
     const ranges = [...errors].sort((left, right) => left.start - right.start);
     let output = "";
@@ -35,6 +37,8 @@ export function createFormulaUI(actions) {
   }
 
   const analyze = debounce(async () => {
+    // /api/analyze devuelve AST, libres y rangos de error; aún no requiere una
+    // interpretación porque esta fase solamente estudia la fórmula.
     state.analysis = null;
     if (!input.value.trim()) {
       state.formulaValid = false;
@@ -80,6 +84,8 @@ export function createFormulaUI(actions) {
         );
         const locateError = () => {
           input.focus();
+          // setSelectionRange usa offsets UTF-16. Se reconstruye el prefijo
+          // desde el índice de caracteres entregado por Go antes de seleccionar.
           const chars = Array.from(input.value);
           const start = chars.slice(0, error.start).join("").length;
           const end = chars.slice(0, error.end).join("").length;
@@ -119,6 +125,8 @@ export function createFormulaUI(actions) {
   }
 
   function quantifierWarnings(formula: Formula): Warning[] {
+    // No invalidan el AST: enseñan cuantificadores vacuos y shadowing recorriendo
+    // la estructura que ya validó el parser Go.
     const warnings: Warning[] = [];
     const hasFreeOccurrence = (node: Formula, variable: string): boolean => {
       switch (node.k) {
@@ -210,6 +218,8 @@ export function createFormulaUI(actions) {
   }
 
   function insertAtCursor(symbol) {
+    // setRangeText respeta selección y cursor; emitir input reutiliza el mismo
+    // camino de análisis que una pulsación del teclado.
     const start = input.selectionStart;
     const end = input.selectionEnd;
     input.setRangeText(symbol, start, end, "end");
@@ -247,6 +257,8 @@ export function createFormulaUI(actions) {
       // The demo API returns submitted declarations while the real API returns
       // maps; this keeps formula generation independent of that response shape.
       const language = currentLanguage();
+      // La generación vive en la UI, pero el resultado se somete al analizador
+      // real: generar una cadena nunca sustituye la validación del backend.
       const generated = buildRandomFormula(language);
       if (!state.mockMode) {
         const analysis = await request("/api/analyze", { input: generated.input, language });

@@ -18,6 +18,8 @@ import {
 } from "./navigation.js";
 
 const actions = {};
+// Los módulos se crean una vez y se coordinan mediante actions. Así cada fase
+// conserva una responsabilidad concreta sin introducir un framework global.
 const interpretation = createInterpretationUI(actions);
 const formula = createFormulaUI(actions);
 const evaluation = createEvaluationUI(actions);
@@ -83,7 +85,7 @@ appearanceButton.addEventListener("click", () => {
 appearanceMenu.addEventListener("change", (event) => applyTheme((event.target as HTMLInputElement).value));
 document.addEventListener("click", (event) => { if (!appearanceMenu.classList.contains("hidden") && !appearanceMenu.parentElement?.contains(event.target as Node)) closeAppearance(); });
 
-const demoExamples = ["universal-verdadero","sin-sucesor","min-existe","densidad-verdadera","densidad-falsa","constante-verdadera","constante-falsa","funcion-sucesor"];
+const demoExamples = ["universal-verdadero","sin-sucesor","min-existe","densidad-verdadera","densidad-falsa","constante-verdadera","constante-falsa","funcion-sucesor","demorgan-conectivos","demorgan-cuantificadores","alcance-cuantificador","contrapositiva"];
 const exampleMeta = {
   "universal-verdadero":["Universal verdadero","Cuantificadores","Todos los objetos satisfacen P."],
   "sin-sucesor":["Universal falso","Contraejemplo","Encuentra el elemento sin sucesor."],
@@ -92,7 +94,11 @@ const exampleMeta = {
   "densidad-falsa":["Implicación falsa","Contraejemplo","No hay algo entre 1 y 2."],
   "constante-verdadera":["Constante verdadera","Aridad cero","Una constante también es una función."],
   "constante-falsa":["Constante falsa","Aridad cero","La salida de c no pertenece a P."],
-  "funcion-sucesor":["Función y relación","Tablas","Una función puede cambiar la verdad."]
+  "funcion-sucesor":["Función y relación","Tablas","Una función puede cambiar la verdad."],
+  "demorgan-conectivos":["De Morgan (conectivos)","Leyes de De Morgan","Equivalencias ¬(P ∧ Q) ↔ ¬P ∨ ¬Q y ¬(P ∨ Q) ↔ ¬P ∧ ¬Q."],
+  "demorgan-cuantificadores":["De Morgan (cuantificadores)","Leyes de De Morgan","Equivalencias ¬∀x P(x) ↔ ∃x ¬P(x) y ¬∃x Q(x) ↔ ∀x ¬Q(x)."],
+  "alcance-cuantificador":["Alcance y variable libre","Alcance","∀x P(x) → Q(x) deja x libre en Q(x)."],
+  "contrapositiva":["Contrapositiva","Equivalencias","(P(x) → Q(x)) ↔ (¬Q(x) → ¬P(x))."]
 };
 const examplesPanel = $("#examples-panel");
 const grid = $("#examples-grid");
@@ -192,6 +198,8 @@ function syncFocusPanelTop() {
 }
 
 function syncFocusSidebars() {
+  // inert saca del orden de tabulación los paneles ocultos en Historia; no basta
+  // con esconderlos visualmente para que la navegación sea accesible.
   const focus = navState.focusMode;
   if (focus) syncFocusPanelTop();
   evaluatorWorkspace.classList.toggle("history-focus", focus);
@@ -467,6 +475,8 @@ function markExampleDirty() { if (state.example && !applyingExample) exampleDirt
   ["input", "change", "click"].forEach((eventName) => $(id).addEventListener(eventName, markExampleDirty, true));
   $(id).addEventListener("input", () => { markResultStale(); updateSummary(); }, true);
 });
+// Una edición invalida la evidencia anterior. Se conserva para comparar, pero
+// queda stale y no puede exportarse como si todavía describiera los datos.
 function markResultStale() { const result = $("#result .result"); if (!result || result.classList.contains("stale")) return; result.classList.add("stale"); const exportButton = $("#export-pdf") as HTMLButtonElement | null; if (exportButton) exportButton.disabled = true; $("#evaluation-status").textContent = "Los datos cambiaron. Vuelve a evaluar para actualizar el resultado."; }
 updateSummary();
 const progressTimer = setInterval(updateProgress, 450);

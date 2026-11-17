@@ -80,6 +80,8 @@ func evaluateHandler(writer http.ResponseWriter, request *http.Request) {
 		writeAPIError(writer, http.StatusBadRequest, "El cuerpo JSON no es válido.")
 		return
 	}
+	// Los errores de fórmula/modelo viajan en el contrato con HTTP 200. Esto
+	// permite que HTTP y WASM entreguen exactamente la misma respuesta lógica.
 	writeJSON(writer, http.StatusOK, logic.EvaluateFormula(body))
 }
 
@@ -107,6 +109,8 @@ func exportEvaluationPDFHandler(writer http.ResponseWriter, request *http.Reques
 		writeAPIError(writer, http.StatusBadRequest, "El cuerpo JSON no es válido o excede el límite de 2 MiB.")
 		return
 	}
+	// Se vuelve a evaluar en el servidor: no se confía en un resultado booleano
+	// o un árbol enviado por el cliente antes de producir el documento oficial.
 	response := logic.EvaluateFormula(body)
 	if len(response.Errors) > 0 {
 		writer.Header().Set("Content-Type", "application/json")
@@ -131,6 +135,8 @@ func exportEvaluationPDFHandler(writer http.ResponseWriter, request *http.Reques
 }
 
 func decodeJSON(request *http.Request, destination any) error {
+	// Rechazar campos desconocidos detecta contratos desactualizados y evita
+	// aceptar silenciosamente errores tipográficos del cliente.
 	decoder := json.NewDecoder(request.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(destination); err != nil {

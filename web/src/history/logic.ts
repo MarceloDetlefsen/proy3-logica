@@ -112,6 +112,8 @@ export interface GodelEncoding {
 }
 
 export function encodeGodel(formula: string): GodelEncoding {
+  // Es una codificación matemática real: el código del símbolo i es exponente
+  // del primo i. BigInt evita la pérdida de precisión de Number.
   const cleaned = formula.replace(/\s+/g, "");
   const chars = [...cleaned];
   if (chars.length === 0) {
@@ -137,6 +139,8 @@ export function encodeGodel(formula: string): GodelEncoding {
 }
 
 export function decodeGodel(value: bigint): { formula: string; codes: number[] } {
+  // La factorización recupera en orden los exponentes que codificaban cada
+  // símbolo; no se usan resultados precalculados para la demostración.
   if (value <= 1n) {
     throw new Error("El número de Gödel debe ser un entero mayor que 1.");
   }

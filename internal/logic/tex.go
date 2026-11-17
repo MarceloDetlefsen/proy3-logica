@@ -6,8 +6,9 @@ import (
 	"strings"
 )
 
-// EvaluationTeX builds the complete LaTeX document describing the language,
-// interpretation, environment, result, and evaluation explanation tree.
+// EvaluationTeX genera el documento completo en Go puro: lenguaje,
+// interpretación, entorno, resultado y árbol. Al no ejecutar procesos puede
+// reutilizarse tanto en servidor como en WebAssembly.
 func EvaluationTeX(request EvaluateRequest, result EvaluateResult, warnings []Warning) string {
 	var document strings.Builder
 	document.WriteString(`\documentclass[11pt]{article}

@@ -17,6 +17,8 @@ export function createInterpretationUI(actions) {
   const touchedSymbols = new Set<string>();
 
   async function validate() {
+    // Se envía una instantánea completa. Path en cada LogicError permite
+    // localizar tabla, fila o celda sin duplicar las reglas del backend.
     if (!hasInteracted && !state.example) {
       state.interpValid = false;
       const status = $("#interpretation-status");
@@ -141,6 +143,8 @@ export function createInterpretationUI(actions) {
   }
 
   function renderTables() {
+    // Las tablas derivan de lenguaje + dominio. Se preservan filas compatibles
+    // para no perder datos cuando el usuario hace un cambio menor.
     const previousFunctions = state.funcRows;
     const previousRelations = state.relRows;
     state.funcRows = {};
@@ -172,6 +176,8 @@ export function createInterpretationUI(actions) {
     section.dataset.symbol = name;
     section.dataset.symbolType = "func";
     section.innerHTML = `<div class="row-head"><h3>Tabla de ${escapeHTML(name)} <span class="muted">(función, aridad ${arity}${arity === 0 ? ", constante" : ""})</span></h3></div>`;
+    // Una función total necesita una fila por tupla de D^n. Para aridad 0 se
+    // genera una sola tupla vacía: esa fila interpreta una constante.
     const tuples = functionTuples(arity);
     if (tuples === null) {
       state.funcRows[name] = [];

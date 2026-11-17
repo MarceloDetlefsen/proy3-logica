@@ -29,7 +29,11 @@ type Token struct {
 	Start, End int
 }
 
+// Tokenize convierte la entrada textual en una secuencia neutral que el parser
+// puede consumir. Los offsets Start/End cuentan runes (caracteres Unicode), no
+// bytes UTF-8; así la interfaz puede seleccionar correctamente símbolos como ∀.
 func Tokenize(input string) ([]Token, []LogicError) {
+	// []rune evita que un operador Unicode ocupe varias posiciones visuales.
 	runes := []rune(input)
 	tokens := make([]Token, 0)
 	var errors []LogicError
@@ -81,6 +85,8 @@ func Tokenize(input string) ([]Token, []LogicError) {
 	return tokens, errors
 }
 
+// matchOperator centraliza los símbolos Unicode y sus aliases ASCII. Los
+// operadores largos van primero para reconocer <-> antes que cualquier prefijo.
 func matchOperator(input []rune, start int) (TokenType, int) {
 	operators := [...]struct {
 		text      string
@@ -128,6 +134,8 @@ func matchOperator(input []rune, start int) (TokenType, int) {
 	return "", 0
 }
 
+// forall/exists se convierten en cuantificadores desde el lexer. Cualquier otro
+// texto con forma de identificador queda como IDENT para resolverlo con Language.
 func keywordType(text string) TokenType {
 	switch asciiLower(text) {
 	case "forall":

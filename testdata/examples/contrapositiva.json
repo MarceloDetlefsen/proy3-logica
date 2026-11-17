@@ -1,0 +1,25 @@
+{
+  "name": "contrapositiva",
+  "description": "Equivalencia entre una implicación y su contrapositiva: (P(x) → Q(x)) ↔ (¬Q(x) → ¬P(x)).",
+  "language": {
+    "funcs": {},
+    "preds": {
+      "P": 1,
+      "Q": 1
+    }
+  },
+  "input": "∀x ((P(x) → Q(x)) ↔ (¬Q(x) → ¬P(x)))",
+  "interpretation": {
+    "domain": ["a", "b"],
+    "funcs": {},
+    "rels": {
+      "P": [["a"]],
+      "Q": [["b"]]
+    }
+  },
+  "env": {},
+  "expect": {
+    "errorCodes": [],
+    "value": true
+  }
+}

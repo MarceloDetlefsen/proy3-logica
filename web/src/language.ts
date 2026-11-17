@@ -16,6 +16,8 @@ export function createLanguageUI(actions) {
   const touchedSymbols = new WeakSet<object>();
 
   function declarations() {
+    // La UI conserva filas vacías para editar, pero el contrato solo recibe las
+    // filas nombradas o tocadas; un placeholder no se convierte en símbolo.
     const toDeclarations = (symbols) =>
       symbols
         .filter((symbol) => symbol.name.trim() || touchedSymbols.has(symbol))
@@ -64,6 +66,8 @@ export function createLanguageUI(actions) {
   }
 
   function markRowError(message: string) {
+    // El nombre citado por el backend permite llevar el error hasta el input
+    // concreto y completar aria-invalid/aria-describedby.
     const quotedName = message.match(/["“]([^"”]*)["”]/)?.[1];
     if (quotedName === undefined) return;
 
@@ -98,6 +102,8 @@ export function createLanguageUI(actions) {
   }
 
   const validate = debounce(async () => {
+    // Una validación dispara las fases dependientes: las tablas usan aridades y
+    // el parser necesita la tabla de símbolos actualizada.
     const hasNamedSymbol = [...state.funcs, ...state.preds].some((symbol) =>
       symbol.name.trim(),
     );

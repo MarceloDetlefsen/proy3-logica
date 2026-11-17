@@ -1,0 +1,25 @@
+{
+  "name": "demorgan-conectivos",
+  "description": "Leyes de De Morgan para negación de conjunción y disyunción.",
+  "language": {
+    "funcs": {},
+    "preds": {
+      "P": 1,
+      "Q": 1
+    }
+  },
+  "input": "∀x ((¬(P(x) ∧ Q(x)) ↔ (¬P(x) ∨ ¬Q(x))) ∧ (¬(P(x) ∨ Q(x)) ↔ (¬P(x) ∧ ¬Q(x))))",
+  "interpretation": {
+    "domain": ["a", "b"],
+    "funcs": {},
+    "rels": {
+      "P": [["a"]],
+      "Q": [["b"]]
+    }
+  },
+  "env": {},
+  "expect": {
+    "errorCodes": [],
+    "value": true
+  }
+}

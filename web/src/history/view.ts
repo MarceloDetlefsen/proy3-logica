@@ -38,6 +38,8 @@ export function createHistoryUI(
   onChapterChange?: (chapterId: string, number1Based: number) => void,
   onToggleMenu?: () => void,
 ): HistoryController {
+  // Retratos, créditos y contenido son locales: Historia funciona sin red y se
+  // publica junto al mismo build estático de GitHub Pages.
   const root = document.getElementById("history-view");
   if (!root) {
     return {

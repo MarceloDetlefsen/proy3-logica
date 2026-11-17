@@ -49,6 +49,8 @@ export const state: {
   mockMode: boolean;
   example: DemoExample | null;
 } = {
+  // Este objeto es la única fuente de verdad compartida por las cuatro fases.
+  // Los booleanos de validez bloquean Evaluar hasta completar el flujo.
   funcs: [],
   preds: [],
   domain: [],
@@ -88,6 +90,7 @@ export function escapeHTML(value) {
 }
 
 export function debounce(callback, delay = 250) {
+  // Agrupa pulsaciones rápidas para no pedir un análisis por cada tecla.
   let timer;
   return (...args) => {
     clearTimeout(timer);
@@ -128,6 +131,8 @@ export function request(
   body: { input: string; language: Language; maxDomainSize: number },
 ): Promise<ModelSearchResponse>;
 export async function request(path: string, body: unknown, signal?: AbortSignal): Promise<any> {
+  // ?mock=1 sirve para demos visuales con fixtures. El flujo normal delega al
+  // transporte HTTP o WASM y ejecuta el núcleo lógico real.
   if (state.mockMode) {
     return mockRequest(path, body);
   }

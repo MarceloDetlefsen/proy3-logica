@@ -20,6 +20,8 @@ const WASM_METHODS: Record<string, string> = {
 };
 
 export function getBackendMode(): BackendMode {
+  // config.js vale "http" en el servidor y el build de Pages lo reemplaza por
+  // "wasm". El resto de la interfaz no necesita conocer dónde corre Go.
   const configured = (window as any).PROY3_BACKEND;
   return configured === "wasm" ? "wasm" : "http";
 }
@@ -77,6 +79,8 @@ interface PendingCall {
 }
 
 class WasmTransport implements Transport {
+  // El worker mantiene la evaluación fuera del hilo de renderizado. pending
+  // relaciona cada id de mensaje con la Promise que espera su respuesta.
   private worker: Worker | null = null;
   private nextId = 1;
   private pending = new Map<number, PendingCall>();
@@ -113,6 +117,8 @@ class WasmTransport implements Transport {
   }
 
   private resetWorker(reason: Error) {
+    // Terminar el worker es la forma fiable de cancelar una ejecución WASM que
+    // excedió el tiempo; después puede crearse una instancia limpia.
     if (this.worker) {
       this.worker.terminate();
       this.worker = null;
@@ -147,6 +153,8 @@ class WasmTransport implements Transport {
         cleanupAbort = () => signal.removeEventListener("abort", onAbort);
       }
 
+      // El límite de 10 s protege la experiencia del navegador, además del
+      // presupuesto interno de pasos que protege al evaluador Go.
       const timer = setTimeout(() => {
         this.pending.delete(id);
         cleanupAbort?.();
@@ -200,5 +208,7 @@ const httpTransport = new HttpTransport();
 const wasmTransport = new WasmTransport();
 
 export function getTransport(): Transport {
+  // Patrón Strategy: los módulos de UI usan un contrato común y no duplican
+  // ninguna operación por backend.
   return isWasmMode() ? wasmTransport : httpTransport;
 }

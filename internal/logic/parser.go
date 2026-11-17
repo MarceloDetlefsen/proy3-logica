@@ -2,6 +2,9 @@ package logic
 
 import "fmt"
 
+// ParseFormula aplica la precedencia llamando primero al nivel más débil:
+// ↔ < → < ∨ < ∧ < operadores prefijos < átomos. Los errores puramente
+// sintácticos detienen el descenso; los de símbolos/aridad se acumulan en p.errors.
 func ParseFormula(input string, lang Language) (Formula, []LogicError) {
 	tokens, lexErrors := Tokenize(input)
 	if lexErrors != nil {
@@ -48,6 +51,8 @@ func (p *formulaParser) parseIff() (Formula, *LogicError) {
 	return left, nil
 }
 
+// La recursión sobre parseImp (en lugar de un for) vuelve la implicación
+// asociativa a la derecha: P → Q → R se interpreta como P → (Q → R).
 func (p *formulaParser) parseImp() (Formula, *LogicError) {
 	left, err := p.parseOr()
 	if err != nil {
@@ -112,6 +117,8 @@ func (p *formulaParser) parseUnary() (Formula, *LogicError) {
 		if err != nil {
 			return nil, err
 		}
+		// El cuerpo usa parseUnary, no parseIff. Por ello ∀x P(x) → Q(x)
+		// significa (∀x P(x)) → Q(x); los paréntesis amplían el alcance.
 		formula, syntaxErr := p.parseUnary()
 		if syntaxErr != nil {
 			return nil, syntaxErr
@@ -120,6 +127,8 @@ func (p *formulaParser) parseUnary() (Formula, *LogicError) {
 		if quantifier.Type == EXISTS {
 			kind = Exists
 		}
+		// Una variable ligada no puede reutilizar el nombre de un símbolo del
+		// lenguaje, pues luego sería imposible decidir si es variable o función.
 		if _, isFunction := p.lang.Funcs[variable.Text]; isFunction {
 			p.addError(WRONG_SYMBOL_KIND, fmt.Sprintf("La variable %q no puede ser un símbolo declarado como función.", variable.Text), variable)
 		}
@@ -203,6 +212,8 @@ func (p *formulaParser) parseTerm() (Term, *LogicError) {
 
 func (p *formulaParser) resolveTerm(name Token, args []Term) Term {
 	if args == nil {
+		// Un identificador sin paréntesis es constante si fue declarado como
+		// función 0-aria; si no fue declarado, se interpreta como variable.
 		if arity, isFunction := p.lang.Funcs[name.Text]; isFunction {
 			if arity == 0 {
 				return App{Fn: name.Text, Args: []Term{}}
@@ -216,6 +227,7 @@ func (p *formulaParser) resolveTerm(name Token, args []Term) Term {
 		}
 		return Var{Name: name.Text}
 	}
+	// Una aplicación f(...) sí exige que f esté declarada como función.
 	if arity, isFunction := p.lang.Funcs[name.Text]; isFunction {
 		if arity != len(args) {
 			p.addError(ARITY_MISMATCH, fmt.Sprintf("La función %q requiere aridad %d, pero se encontraron %d argumentos.", name.Text, arity, len(args)), name)
@@ -246,6 +258,8 @@ func (p *formulaParser) resolvePredicate(name Token, args []Term) {
 }
 
 func (p *formulaParser) addError(code, message string, token Token) {
+	// Estos errores semánticos locales se acumulan para presentar varios de una
+	// vez; los fallos estructurales se retornan inmediatamente desde expect.
 	p.errors = append(p.errors, LogicError{Code: code, Message: message, Start: token.Start, End: token.End})
 }
 

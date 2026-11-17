@@ -18,6 +18,8 @@ import {
 } from "./navigation.js";
 
 const actions = {};
+// Los módulos se crean una vez y se coordinan mediante actions. Así cada fase
+// conserva una responsabilidad concreta sin introducir un framework global.
 const interpretation = createInterpretationUI(actions);
 const formula = createFormulaUI(actions);
 const evaluation = createEvaluationUI(actions);
@@ -192,6 +194,8 @@ function syncFocusPanelTop() {
 }
 
 function syncFocusSidebars() {
+  // inert saca del orden de tabulación los paneles ocultos en Historia; no basta
+  // con esconderlos visualmente para que la navegación sea accesible.
   const focus = navState.focusMode;
   if (focus) syncFocusPanelTop();
   evaluatorWorkspace.classList.toggle("history-focus", focus);
@@ -467,6 +471,8 @@ function markExampleDirty() { if (state.example && !applyingExample) exampleDirt
   ["input", "change", "click"].forEach((eventName) => $(id).addEventListener(eventName, markExampleDirty, true));
   $(id).addEventListener("input", () => { markResultStale(); updateSummary(); }, true);
 });
+// Una edición invalida la evidencia anterior. Se conserva para comparar, pero
+// queda stale y no puede exportarse como si todavía describiera los datos.
 function markResultStale() { const result = $("#result .result"); if (!result || result.classList.contains("stale")) return; result.classList.add("stale"); const exportButton = $("#export-pdf") as HTMLButtonElement | null; if (exportButton) exportButton.disabled = true; $("#evaluation-status").textContent = "Los datos cambiaron. Vuelve a evaluar para actualizar el resultado."; }
 updateSummary();
 const progressTimer = setInterval(updateProgress, 450);

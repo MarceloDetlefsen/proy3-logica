@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+// Term y Formula son uniones cerradas mediante métodos no exportados. Esto
+// obliga al evaluador a trabajar con estructura, no con fragmentos de texto.
 type Term interface{ isTerm() }
 
 type Var struct{ Name string }
@@ -275,6 +277,7 @@ func (q *Quant) UnmarshalJSON(data []byte) error {
 }
 
 func UnmarshalTerm(data []byte) (Term, error) {
+	// El discriminador k reconstruye el tipo concreto al cruzar la frontera JSON.
 	kind, err := jsonKind(data)
 	if err != nil {
 		return nil, err
@@ -292,6 +295,8 @@ func UnmarshalTerm(data []byte) (Term, error) {
 }
 
 func UnmarshalFormula(data []byte) (Formula, error) {
+	// Mantener este contrato explícito permite mostrar el AST en TypeScript sin
+	// duplicar las reglas de parseo en el navegador.
 	kind, err := jsonKind(data)
 	if err != nil {
 		return nil, err

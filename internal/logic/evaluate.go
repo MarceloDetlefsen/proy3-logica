@@ -11,8 +11,9 @@ const (
 	maxExplanationNodes = 2000
 )
 
-// EvaluateFormula validates all inputs and evaluates the formula under the
-// supplied finite interpretation using Tarski semantics.
+// EvaluateFormula valida todas las capas antes de emitir un valor de verdad:
+// lenguaje, sintaxis, interpretación y asignación de variables libres. Solo si
+// no hay errores aplica la semántica de Tarski sobre el modelo finito recibido.
 func EvaluateFormula(request EvaluateRequest) EvaluateResponse {
 	response := EvaluateResponse{Errors: []LogicError{}, Warnings: []Warning{}}
 	funcDecls := make([]SymbolDecl, 0, len(request.Language.Funcs))
@@ -40,6 +41,8 @@ func EvaluateFormula(request EvaluateRequest) EvaluateResponse {
 		domain[value] = true
 	}
 	for _, variable := range freeVars {
+		// Toda fórmula abierta necesita una asignación en D para cada variable
+		// libre; de lo contrario su verdad bajo este entorno no está definida.
 		value, ok := request.Env[variable]
 		if !ok {
 			response.Errors = append(response.Errors, LogicError{Code: ENV_MISSING, Message: fmt.Sprintf("Falta asignar un valor a la variable libre %q.", variable), Path: "env." + variable})
@@ -54,6 +57,8 @@ func EvaluateFormula(request EvaluateRequest) EvaluateResponse {
 		free[variable] = true
 	}
 	for variable := range request.Env {
+		// Las asignaciones sobrantes no cambian el resultado, pero se reportan
+		// para evitar que el usuario crea que sí participaron.
 		if !free[variable] {
 			response.Warnings = append(response.Warnings, Warning{Kind: WarningExtraEnv, Message: fmt.Sprintf("La variable %q no es libre en la fórmula y su asignación inicial se ignora.", variable), Path: "env." + variable})
 		}
@@ -69,6 +74,8 @@ func EvaluateFormula(request EvaluateRequest) EvaluateResponse {
 		stepsLeft: MaxEvaluationSteps, explanationLeft: maxExplanationNodes,
 	}
 	for name, entries := range request.Interpretation.Funcs {
+		// Las tablas se preindexan por tupleKey: durante la recursión, consultar
+		// una función o relación pasa de buscar filas a una lectura de map O(1).
 		state.functions[name] = make(map[string]string, len(entries))
 		for _, entry := range entries {
 			state.functions[name][tupleKey(entry.Args)] = entry.Value
@@ -99,6 +106,8 @@ type evaluationState struct {
 }
 
 func (s *evaluationState) tick() bool {
+	// Fórmulas y términos comparten un presupuesto para impedir que dominios
+	// grandes con cuantificadores anidados bloqueen servidor o navegador.
 	s.stepsLeft--
 	return s.stepsLeft >= 0
 }
@@ -108,6 +117,8 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 		return false, Explanation{}, errEvaluationLimit
 	}
 	holds := false
+	// Cada llamada devuelve a la vez el booleano y la evidencia que lo justifica.
+	// freeEnv conserva solo asignaciones relevantes para esta subfórmula.
 	node := Explanation{Rule: "", Formula: FormulaString(formula), Env: freeEnv(formula, env), Children: []Explanation{}}
 	child := func(f Formula, next Env) (bool, Explanation, error) { return s.eval(f, next) }
 	appendChild := func(explanation Explanation) int {
@@ -117,6 +128,7 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 			s.explanationLeft--
 			return index
 		} else {
+			// Recortar la explicación no interrumpe la evaluación booleana.
 			node.Truncated = true
 			return -1
 		}
@@ -133,6 +145,8 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 			args[i] = value
 			node.Terms = append(node.Terms, ExplanationTerm{Term: TermString(term), Value: value})
 		}
+		// Un átomo es verdadero exactamente cuando la tupla de denotaciones
+		// pertenece a la relación interpretada.
 		holds = s.relations[f.Name][tupleKey(args)]
 		if holds {
 			node.Summary = "La tupla de términos pertenece a la relación."
@@ -153,6 +167,7 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 			{Term: TermString(f.Left), Value: left},
 			{Term: TermString(f.Right), Value: right},
 		}
+		// La igualdad es lógica: compara denotaciones y no necesita una tabla.
 		holds = left == right
 		if holds {
 			node.Summary = fmt.Sprintf("Ambos términos denotan el mismo elemento del dominio (%q).", left)
@@ -175,6 +190,7 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 			return false, Explanation{}, err
 		}
 		leftIndex := appendChild(leftExplanation)
+		// and, or e imp aplican cortocircuito; iff siempre requiere ambos lados.
 		needRight := true
 		if f.Op == And && !left {
 			holds, needRight = false, false
@@ -201,6 +217,7 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 			case Iff:
 				holds = left == right
 			}
+			// Decisive indica qué hijos bastan para justificar el resultado en UI.
 			if f.Op == And && !holds || f.Op == Or && holds {
 				node.Decisive = []int{rightIndex}
 			} else {
@@ -216,6 +233,8 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 		node.DomainSize = &domainSize
 		for _, value := range s.interpretation.Domain {
 			checked++
+			// Clonar y sobrescribir modela alcance léxico y shadowing: un
+			// cuantificador interno puede ligar de nuevo la misma variable.
 			next := cloneEnv(env)
 			next[f.V] = value
 			result, explanation, err := child(f.F, next)
@@ -223,6 +242,7 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 				return false, Explanation{}, err
 			}
 			childIndex := appendChild(explanation)
+			// La primera falsedad decide un universal y queda como contraejemplo.
 			if f.Q == Forall && !result {
 				holds = false
 				node.Counterexample = &ExplanationBinding{Variable: f.V, Value: value}
@@ -231,6 +251,7 @@ func (s *evaluationState) eval(formula Formula, env Env) (bool, Explanation, err
 				}
 				break
 			}
+			// La primera verdad decide un existencial y queda como testigo.
 			if f.Q == Exists && result {
 				holds = true
 				node.Witness = &ExplanationBinding{Variable: f.V, Value: value}
@@ -273,8 +294,12 @@ func (s *evaluationState) evalTerm(term Term, env Env) (string, error) {
 	}
 	switch value := term.(type) {
 	case Var:
+		// Las variables libres vienen del entorno inicial; las ligadas fueron
+		// agregadas por el cuantificador que llamó a eval.
 		return env[value.Name], nil
 	case App:
+		// Se evalúan primero los argumentos y luego se consulta la función por
+		// la tupla resultante; una App sin argumentos representa una constante.
 		args := make([]string, len(value.Args))
 		for i, arg := range value.Args {
 			result, err := s.evalTerm(arg, env)

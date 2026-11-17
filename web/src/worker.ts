@@ -13,6 +13,8 @@ interface WorkerRequest {
 let readyPromise: Promise<void> | null = null;
 
 function ensureWasm(): Promise<void> {
+  // La promesa se memoriza para cargar wasm_exec.js y logic.wasm una sola vez,
+  // aunque lleguen varias peticiones mientras inicializa el worker.
   if (readyPromise) {
     return readyPromise;
   }
@@ -51,6 +53,8 @@ function ensureWasm(): Promise<void> {
 }
 
 self.addEventListener("message", async (event: MessageEvent<WorkerRequest>) => {
+  // Cada respuesta conserva el id de la petición para permitir concurrencia
+  // lógica sobre el mismo canal postMessage.
   const { id, method, payload } = event.data;
   try {
     await ensureWasm();

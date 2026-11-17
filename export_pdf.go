@@ -24,6 +24,7 @@ func compileEvaluationPDF(ctx context.Context, request logic.EvaluateRequest, re
 		return nil, errLatexUnavailable
 	}
 
+	// Cada compilación usa un directorio aislado que se elimina al terminar.
 	directory, err := os.MkdirTemp("", "proy3-latex-")
 	if err != nil {
 		return nil, errors.New("No se pudo preparar el documento PDF.")
@@ -34,9 +35,12 @@ func compileEvaluationPDF(ctx context.Context, request logic.EvaluateRequest, re
 		return nil, errors.New("No se pudo preparar el documento PDF.")
 	}
 
+	// El timeout limita consumo de recursos incluso si pdflatex se atasca.
 	compileCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	command := exec.CommandContext(compileCtx, compiler,
+		// -no-shell-escape impide que contenido LaTeX ejecute comandos del SO;
+		// -halt-on-error evita producir documentos parciales tras un fallo.
 		"-interaction=nonstopmode", "-halt-on-error", "-no-shell-escape",
 		"-output-directory", ".", "resolucion.tex",
 	)

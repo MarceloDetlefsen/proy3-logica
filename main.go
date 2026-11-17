@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// El binario incluye interfaz y ejemplos: en producción no necesita una carpeta
+// pública separada ni rutas absolutas dependientes del sistema anfitrión.
+//
 //go:embed web testdata/examples
 var webFiles embed.FS
 
@@ -29,6 +32,7 @@ func main() {
 }
 
 func listenAddress() string {
+	// ADDR tiene prioridad; PORT facilita plataformas que solo inyectan el número.
 	if addr := strings.TrimSpace(os.Getenv("ADDR")); addr != "" {
 		return addr
 	}
@@ -42,6 +46,7 @@ func listenAddress() string {
 }
 
 func runHealthcheck(addr string) int {
+	// Docker puede comprobar salud con el propio binario, sin instalar curl/wget.
 	port := "8080"
 	if idx := strings.LastIndex(addr, ":"); idx >= 0 && idx+1 < len(addr) {
 		port = addr[idx+1:]
@@ -59,6 +64,8 @@ func runHealthcheck(addr string) int {
 }
 
 func newServer() http.Handler {
+	// Los adaptadores HTTP delegan la lógica a internal/logic; el servidor solo
+	// se ocupa de transporte, archivos estáticos y códigos de estado.
 	server := http.NewServeMux()
 	web, _ := fs.Sub(webFiles, "web")
 	server.Handle("/", http.FileServer(http.FS(web)))

@@ -19,6 +19,8 @@ export interface HistoryHostActions {
 }
 
 function prefersReducedMotion(): boolean {
+  // Las demos respetan esta preferencia y ofrecen avance manual en lugar de
+  // depender de animaciones o intervalos automáticos.
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 

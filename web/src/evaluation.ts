@@ -30,6 +30,8 @@ export function createEvaluationUI(actions) {
   };
 
   function updateButton() {
+    // Evaluar solo se habilita si las tres fases previas son válidas y cada
+    // variable libre tiene una asignación perteneciente al dominio.
     const hasAssignments = state.analysis?.freeVars.every((variable) =>
       state.domain.includes(state.env[variable]),
     );
@@ -43,6 +45,8 @@ export function createEvaluationUI(actions) {
   }
 
   function renderExplanation(node, depth = 0) {
+    // El árbol JSON se vuelve una jerarquía de <details>. Los índices decisive
+    // resaltan las ramas que el evaluador identificó como suficientes.
     const details = document.createElement("details");
     details.open = false;
     details.dataset.evaluationStep = String(evaluationSteps.length);
@@ -104,6 +108,8 @@ export function createEvaluationUI(actions) {
   }
 
   function createStepControls() {
+    // evaluationSteps queda en preorden: revelar índices crecientes recorre la
+    // fórmula completa y después sus subfórmulas.
     const controls = document.createElement("nav");
     controls.className = "evaluation-steps";
     controls.setAttribute("aria-label", "Recorrido paso a paso del árbol");
@@ -203,6 +209,8 @@ export function createEvaluationUI(actions) {
   }
 
   async function searchModels() {
+    // Se distingue búsqueda exhaustiva de parcial: no hallar contramodelo bajo
+    // una cota nunca se presenta como prueba de validez lógica.
     searchButton.disabled = true;
     searchHost.replaceChildren();
     searchStatus.textContent = "Enumerando modelos finitos…";
@@ -242,6 +250,8 @@ export function createEvaluationUI(actions) {
     resultHost.replaceChildren();
 
     try {
+      // Se manda la instantánea completa para que Go vuelva a validarla y no
+      // dependa de flags controlados por el navegador.
       const response = await request("/api/evaluate", {
         language: currentLanguage(),
         input: ($("#formula-input") as HTMLTextAreaElement).value,
@@ -283,6 +293,8 @@ export function createEvaluationUI(actions) {
         exportButton.disabled = true;
         exportStatus.textContent = wasmMode ? "Generando archivo LaTeX (.tex)…" : "Preparando el PDF con LaTeX…";
         try {
+          // HTTP entrega PDF; Pages/WASM entrega el mismo documento como .tex
+          // porque un sitio estático no puede ejecutar pdflatex.
           const exported = await getTransport().exportDocument({
             language: currentLanguage(),
             input: ($("#formula-input") as HTMLTextAreaElement).value,

@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	// Este objeto reproduce los endpoints HTTP dentro del navegador. Ambos modos
+	// llaman al mismo internal/logic; solo cambia el adaptador de transporte.
 	api := js.Global().Get("Object").New()
 	api.Set("validateLanguage", js.FuncOf(wrapJSON(handleValidateLanguage)))
 	api.Set("analyze", js.FuncOf(wrapJSON(handleAnalyze)))
@@ -23,10 +25,13 @@ func main() {
 	api.Set("exportEvaluationTeX", js.FuncOf(wrapJSON(handleExportEvaluationTeX)))
 
 	js.Global().Set("proy3Wasm", api)
+	// Mantiene vivo el runtime Go para que JavaScript pueda seguir invocándolo.
 	select {}
 }
 
 func wrapJSON(handler func(string) (any, int, error)) func(js.Value, []js.Value) any {
+	// La frontera JS/WASM intercambia strings JSON. __httpError conserva la
+	// distinción entre error de transporte y errores lógicos del cuerpo.
 	return func(_ js.Value, args []js.Value) any {
 		input := "{}"
 		if len(args) > 0 && args[0].Type() == js.TypeString {
@@ -111,6 +116,8 @@ func handleExportEvaluationTeX(input string) (any, int, error) {
 }
 
 func decodeStrictJSON(input string, destination any) error {
+	// Se mantiene la misma política estricta que api.go para que HTTP y WASM no
+	// acepten contratos diferentes.
 	decoder := json.NewDecoder(bytes.NewBufferString(input))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(destination); err != nil {

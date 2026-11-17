@@ -10,6 +10,10 @@ type SymbolDecl struct {
 	Arity int    `json:"arity"`
 }
 
+// ValidateLanguage es la puerta de entrada de la fase de lenguaje.
+// Primero valida todas las declaraciones y solo construye los mapas finales
+// cuando no existe ningún error. El mapa seen es compartido entre funciones y
+// predicados: por eso un mismo nombre tampoco puede pertenecer a ambas clases.
 func ValidateLanguage(funcs, preds []SymbolDecl) (Language, []LogicError) {
 	errors := make([]LogicError, 0)
 	seen := make(map[string]string, len(funcs)+len(preds))
@@ -38,7 +42,12 @@ func ValidateLanguage(funcs, preds []SymbolDecl) (Language, []LogicError) {
 	return language, nil
 }
 
+// validateSymbol concentra las reglas comunes de una declaración. Recibe el
+// tipo como texto porque las funciones permiten aridad 0 (constantes), mientras
+// que los predicados del proyecto deben tener al menos un argumento.
 func validateSymbol(decl SymbolDecl, kind string, errors *[]LogicError, seen map[string]string) {
+	// validSymbolName verifica el formato [A-Za-z_][A-Za-z0-9_]*. Se valida
+	// aparte de las palabras reservadas para poder reportar ambos problemas.
 	if !validSymbolName(decl.Name) {
 		*errors = append(*errors, LogicError{
 			Code:    INVALID_NAME,
@@ -55,6 +64,9 @@ func validateSymbol(decl SymbolDecl, kind string, errors *[]LogicError, seen map
 			End:     0,
 		})
 	}
+	// seen funciona como una tabla de símbolos: guarda dónde apareció primero
+	// cada nombre. Al reutilizarlo en ambos bucles de ValidateLanguage también
+	// detecta choques entre una función y un predicado.
 	if previous, exists := seen[decl.Name]; exists {
 		*errors = append(*errors, LogicError{
 			Code:    DUPLICATE_SYMBOL,
@@ -66,6 +78,7 @@ func validateSymbol(decl SymbolDecl, kind string, errors *[]LogicError, seen map
 		seen[decl.Name] = kind
 	}
 
+	// Un predicado de esta aplicación representa una relación de aridad >= 1.
 	if kind == "predicado" && decl.Arity < 1 {
 		*errors = append(*errors, LogicError{
 			Code:    INVALID_ARITY,
@@ -74,6 +87,8 @@ func validateSymbol(decl SymbolDecl, kind string, errors *[]LogicError, seen map
 			End:     0,
 		})
 	}
+	// Una función admite aridad 0: ese es precisamente el modo en que el AST y
+	// el evaluador representan una constante. Solo las aridades negativas fallan.
 	if kind == "función" && decl.Arity < 0 {
 		*errors = append(*errors, LogicError{
 			Code:    INVALID_ARITY,
@@ -84,6 +99,8 @@ func validateSymbol(decl SymbolDecl, kind string, errors *[]LogicError, seen map
 	}
 }
 
+// validSymbolName limita los identificadores a ASCII para que lexer, parser,
+// tablas JSON y generación de LaTeX compartan exactamente la misma gramática.
 func validSymbolName(name string) bool {
 	if name == "" {
 		return false
@@ -104,6 +121,8 @@ func validSymbolName(name string) bool {
 	return true
 }
 
+// forall y exists son aliases ASCII de los cuantificadores, sin distinguir
+// mayúsculas; declararlos como símbolos haría ambigua la tokenización.
 func isReservedName(name string) bool {
 	return equalFoldASCII(name, "forall") || equalFoldASCII(name, "exists")
 }

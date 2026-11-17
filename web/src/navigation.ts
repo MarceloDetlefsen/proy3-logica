@@ -8,6 +8,9 @@ export interface NavState {
   focusMode: boolean;
 }
 
+// Un único auxView hace mutuamente excluyentes Aprender, Ejemplos e Historia;
+// cambiar de vista conserva los datos de las cuatro fases del evaluador.
+
 const VALID_PHASES: readonly PhaseId[] = [
   "language",
   "interpretation",
@@ -61,6 +64,8 @@ export function parseHash(
   rawHash: string,
   fallbackPhase: PhaseId = "language",
 ): NavState {
+  // Los fragmentos son relativos para funcionar bajo el subdirectorio que
+  // GitHub Pages asigna al repositorio y conservar Atrás/Adelante del navegador.
   const clean = (rawHash || "").replace(/^#/, "").trim();
   if (!clean || clean.startsWith("/")) {
     return createInitialNavState(fallbackPhase);

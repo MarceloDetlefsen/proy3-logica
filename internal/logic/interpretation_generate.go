@@ -8,8 +8,9 @@ import (
 
 const maxGeneratedRelationTuples = 1000
 
-// GenerateRandomInterpretation constructs a valid finite interpretation for
-// language. The seed makes the generated tables reproducible.
+// GenerateRandomInterpretation construye una interpretación finita válida. La
+// semilla hace reproducibles las tablas, algo útil para repetir una demostración
+// o convertir un caso aleatorio en una prueba de regresión.
 func GenerateRandomInterpretation(language Language, domainSize int, seed int64) (Interpretation, []LogicError) {
 	if domainSize < 1 {
 		return Interpretation{}, []LogicError{{
@@ -56,6 +57,8 @@ func GenerateRandomInterpretation(language Language, domainSize int, seed int64)
 		Rels:   make(map[string][][]string, len(language.Preds)),
 	}
 	rng := rand.New(rand.NewSource(seed))
+	// Los mapas de Go no tienen orden estable. Ordenar nombres garantiza que una
+	// misma semilla consuma la secuencia aleatoria de la misma manera.
 	functionNames := make([]string, 0, len(language.Funcs))
 	for name := range language.Funcs {
 		functionNames = append(functionNames, name)
@@ -73,6 +76,7 @@ func GenerateRandomInterpretation(language Language, domainSize int, seed int64)
 			}}
 		}
 		entries := make([]FuncEntry, 0, count)
+		// Se visitan todas las |D|^n tuplas para garantizar funciones totales.
 		visitTuples(domain, arity, func(args []string) {
 			entries = append(entries, FuncEntry{Args: append([]string{}, args...), Value: domain[rng.Intn(len(domain))]})
 		})
@@ -96,10 +100,14 @@ func GenerateRandomInterpretation(language Language, domainSize int, seed int64)
 					tuples = append(tuples, tuple)
 				}
 			}
+			// Si el muestreo 50/50 no eligió ninguna, se agrega una para respetar
+			// la decisión del proyecto de no admitir relaciones vacías.
 			if len(tuples) == 0 {
 				tuples = append(tuples, allTuples[rng.Intn(len(allTuples))])
 			}
 		} else {
+			// Para relaciones enormes se muestrea un subconjunto único en vez de
+			// materializar todas las combinaciones posibles.
 			rowCount := 1 + rng.Intn(maxGeneratedRelationTuples)
 			tuples = make([][]string, 0, rowCount)
 			seen := make(map[string]bool, rowCount)

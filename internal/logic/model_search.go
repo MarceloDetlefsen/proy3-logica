@@ -11,8 +11,9 @@ const (
 	maxSearchTableEntries      = 128
 )
 
-// SearchModels enumerates finite interpretations in increasing domain size.
-// It reports whether enumeration was exhaustive within its fixed work budget.
+// SearchModels enumera interpretaciones finitas por tamaño creciente para hallar
+// primero ejemplos pequeños. No demuestra validez sobre estructuras infinitas:
+// Complete solo afirma que agotó el espacio finito solicitado dentro del presupuesto.
 func SearchModels(request ModelSearchRequest) ModelSearchResponse {
 	response := ModelSearchResponse{Errors: []LogicError{}, MaxDomainSize: request.MaxDomainSize, Complete: true}
 	if request.MaxDomainSize < 1 || request.MaxDomainSize > MaxDomainSize {
@@ -28,6 +29,8 @@ func SearchModels(request ModelSearchRequest) ModelSearchResponse {
 		return response
 	}
 	variables := freeVariables(formula)
+	// Se comienza por |D|=1 y se avanza hasta N. No se rompen simetrías por
+	// isomorfismo, así que pueden visitarse modelos estructuralmente equivalentes.
 	for size := 1; size <= request.MaxDomainSize; size++ {
 		domain := make([]string, size)
 		for i := range domain {
@@ -55,6 +58,7 @@ func SearchModels(request ModelSearchRequest) ModelSearchResponse {
 				return false
 			}
 			response.Checked++
+			// Una fórmula abierta se prueba bajo todas las asignaciones D^k.
 			return enumerateEnvs(variables, domain, Env{}, func(env Env) bool {
 				if response.Evaluated >= MaxSearchedEvaluations {
 					response.Complete = false
@@ -75,6 +79,7 @@ func SearchModels(request ModelSearchRequest) ModelSearchResponse {
 				if !evaluation.Result.Value && response.Falsifying == nil {
 					response.Falsifying = found
 				}
+				// Se detiene temprano cuando ya existe modelo y contramodelo.
 				return response.Satisfying == nil || response.Falsifying == nil
 			})
 		})
@@ -113,6 +118,8 @@ func enumerateFunctions(funcs, preds []SymbolDecl, index int, domain []string, c
 	decl := funcs[index]
 	entries := []FuncEntry{}
 	visitTuples(domain, decl.Arity, func(args []string) { entries = append(entries, FuncEntry{Args: append([]string{}, args...)}) })
+	// Cada posición de la tabla puede tomar cualquier valor de D: esto enumera
+	// todas las funciones totales D^n -> D.
 	var assign func(int) bool
 	assign = func(position int) bool {
 		if position == len(entries) {
@@ -138,6 +145,8 @@ func enumerateRelations(funcs, preds []SymbolDecl, index int, domain []string, c
 	tuples := [][]string{}
 	visitTuples(domain, decl.Arity, func(args []string) { tuples = append(tuples, append([]string{}, args...)) })
 	selected := [][]string{}
+	// Para cada tupla se exploran las decisiones excluir/incluir. La selección
+	// vacía se omite porque el contrato del proyecto exige relaciones no vacías.
 	var choose func(int) bool
 	choose = func(position int) bool {
 		if position == len(tuples) {

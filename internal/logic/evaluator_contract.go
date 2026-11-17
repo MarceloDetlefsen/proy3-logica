@@ -21,6 +21,8 @@ type ExplanationTerm struct {
 }
 
 type Explanation struct {
+	// El árbol no solo dice si se cumple: conserva regla, entorno, términos y la
+	// rama decisiva para reconstruir una justificación pedagógica en cualquier UI.
 	Holds          bool                `json:"holds"`
 	Rule           string              `json:"rule"`
 	Formula        string              `json:"formula"`

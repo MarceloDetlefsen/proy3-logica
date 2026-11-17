@@ -8,11 +8,15 @@ services:
     environment:
       PORT: "8080"
       ADDR: ":8080"
+    # El binario y la imagen quedan inmutables; solo /tmp acepta escrituras
+    # efímeras para los archivos intermedios de pdflatex.
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=128m
     cap_drop:
       - ALL
+    # Defensa en profundidad: ni siquiera un proceso comprometido puede ganar
+    # privilegios o crear una cantidad ilimitada de procesos.
     security_opt:
       - no-new-privileges:true
     mem_limit: 512m

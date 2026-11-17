@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-// ValidateInterpretation checks that an interpretation gives a finite model
-// for every symbol in language. It accumulates independent errors with paths
-// that point to the offending JSON field or table row.
+// ValidateInterpretation comprueba que la interpretación sea un modelo finito
+// para cada símbolo del lenguaje. Acumula errores independientes y usa Path
+// para señalar el campo o la fila exacta que la interfaz debe resaltar.
 func ValidateInterpretation(language Language, interpretation Interpretation) InterpretationValidateResponse {
 	response := InterpretationValidateResponse{Errors: []LogicError{}, Warnings: []Warning{}}
 	add := func(code, message, path string) {
@@ -15,6 +15,8 @@ func ValidateInterpretation(language Language, interpretation Interpretation) In
 	}
 	domain := make(map[string]bool, len(interpretation.Domain))
 	domainValid := true
+	// La semántica de primer orden usada por la aplicación exige un dominio
+	// finito, no vacío, sin elementos repetidos y dentro de los límites de costo.
 	if len(interpretation.Domain) == 0 {
 		add(DOMAIN_EMPTY, "El dominio no puede estar vacío.", "domain")
 		domainValid = false
@@ -37,6 +39,7 @@ func ValidateInterpretation(language Language, interpretation Interpretation) In
 	}
 
 	for name := range language.Funcs {
+		// Toda función declarada debe tener una interpretación explícita.
 		if _, exists := interpretation.Funcs[name]; !exists {
 			add(FUNC_MISSING, fmt.Sprintf("Falta la tabla de la función %q.", name), "funcs."+name)
 		}
@@ -54,6 +57,8 @@ func ValidateInterpretation(language Language, interpretation Interpretation) In
 		if len(entries) > MaxTableEntries {
 			add(LIMIT_EXCEEDED, fmt.Sprintf("La tabla de la función %q tiene %d entradas; el máximo permitido es %d.", name, len(entries), MaxTableEntries), path)
 		}
+		// seen detecta si una misma tupla recibió dos salidas. Una función debe
+		// ser univaluada, además de total.
 		seen := make(map[string]bool, len(entries))
 		for i, entry := range entries {
 			rowPath := fmt.Sprintf("%s[%d]", path, i)
@@ -88,6 +93,8 @@ func ValidateInterpretation(language Language, interpretation Interpretation) In
 		if !declared || !domainValid || len(entries) > MaxTableEntries {
 			continue
 		}
+		// Una función n-aria sobre D necesita exactamente |D|^n entradas. Para
+		// una constante (n=0), el resultado es una única entrada sin argumentos.
 		expected, withinLimit := powerWithinLimit(len(domain), arity, MaxTableEntries)
 		if !withinLimit {
 			add(LIMIT_EXCEEDED, fmt.Sprintf("La tabla total de %q requiere más de %d entradas para cubrir todas las %d-tuplas del dominio; no se puede validar dentro del límite.", name, MaxTableEntries, arity), path)
@@ -111,6 +118,8 @@ func ValidateInterpretation(language Language, interpretation Interpretation) In
 		if !declared {
 			add(REL_UNKNOWN, fmt.Sprintf("La relación %q no está declarada en el lenguaje.", name), path)
 		}
+		// El proyecto decidió rechazar relaciones vacías. Es una restricción de
+		// la aplicación; la lógica de primer orden general sí puede admitirlas.
 		if len(tuples) == 0 {
 			add(REL_EMPTY, fmt.Sprintf("La relación %q no puede estar vacía.", name), path)
 			continue
@@ -123,6 +132,8 @@ func ValidateInterpretation(language Language, interpretation Interpretation) In
 			rowPath := fmt.Sprintf("%s[%d]", path, i)
 			key := tupleKey(tuple)
 			if seenTuples[key] {
+				// Repetir una tupla no cambia la relación, por eso es advertencia y
+				// no error bloqueante.
 				response.Warnings = append(response.Warnings, Warning{
 					Kind: WarningDuplicateTuple, Message: "Esta tupla ya aparece en la relación.", Path: rowPath,
 				})
@@ -156,6 +167,8 @@ func validDomainElement(value string) bool {
 }
 
 func tupleKey(tuple []string) string {
+	// Prefijar cada valor con su longitud evita colisiones por concatenación:
+	// ["a", "bc"] y ["ab", "c"] producen claves distintas.
 	var key strings.Builder
 	for _, value := range tuple {
 		fmt.Fprintf(&key, "%d:%s;", len(value), value)
@@ -164,6 +177,7 @@ func tupleKey(tuple []string) string {
 }
 
 func powerWithinLimit(base, exponent, limit int) (int, bool) {
+	// La comprobación previa a multiplicar evita overflow y trabajo explosivo.
 	value := 1
 	for i := 0; i < exponent; i++ {
 		if base != 0 && value > limit/base {

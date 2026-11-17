@@ -1,0 +1,25 @@
+{
+  "name": "demorgan-cuantificadores",
+  "description": "Leyes de De Morgan para cuantificadores: ¬∀x P(x) ↔ ∃x ¬P(x) y ¬∃x Q(x) ↔ ∀x ¬Q(x).",
+  "language": {
+    "funcs": {},
+    "preds": {
+      "P": 1,
+      "Q": 1
+    }
+  },
+  "input": "(¬∀x P(x) ↔ ∃x ¬P(x)) ∧ (¬∃x Q(x) ↔ ∀x ¬Q(x))",
+  "interpretation": {
+    "domain": ["a", "b"],
+    "funcs": {},
+    "rels": {
+      "P": [["a"]],
+      "Q": [["b"]]
+    }
+  },
+  "env": {},
+  "expect": {
+    "errorCodes": [],
+    "value": true
+  }
+}

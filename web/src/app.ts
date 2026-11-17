@@ -85,7 +85,7 @@ appearanceButton.addEventListener("click", () => {
 appearanceMenu.addEventListener("change", (event) => applyTheme((event.target as HTMLInputElement).value));
 document.addEventListener("click", (event) => { if (!appearanceMenu.classList.contains("hidden") && !appearanceMenu.parentElement?.contains(event.target as Node)) closeAppearance(); });
 
-const demoExamples = ["universal-verdadero","sin-sucesor","min-existe","densidad-verdadera","densidad-falsa","constante-verdadera","constante-falsa","funcion-sucesor"];
+const demoExamples = ["universal-verdadero","sin-sucesor","min-existe","densidad-verdadera","densidad-falsa","constante-verdadera","constante-falsa","funcion-sucesor","demorgan-conectivos","demorgan-cuantificadores"];
 const exampleMeta = {
   "universal-verdadero":["Universal verdadero","Cuantificadores","Todos los objetos satisfacen P."],
   "sin-sucesor":["Universal falso","Contraejemplo","Encuentra el elemento sin sucesor."],
@@ -94,7 +94,9 @@ const exampleMeta = {
   "densidad-falsa":["Implicación falsa","Contraejemplo","No hay algo entre 1 y 2."],
   "constante-verdadera":["Constante verdadera","Aridad cero","Una constante también es una función."],
   "constante-falsa":["Constante falsa","Aridad cero","La salida de c no pertenece a P."],
-  "funcion-sucesor":["Función y relación","Tablas","Una función puede cambiar la verdad."]
+  "funcion-sucesor":["Función y relación","Tablas","Una función puede cambiar la verdad."],
+  "demorgan-conectivos":["De Morgan (conectivos)","Leyes de De Morgan","Equivalencias ¬(P ∧ Q) ↔ ¬P ∨ ¬Q y ¬(P ∨ Q) ↔ ¬P ∧ ¬Q."],
+  "demorgan-cuantificadores":["De Morgan (cuantificadores)","Leyes de De Morgan","Equivalencias ¬∀x P(x) ↔ ∃x ¬P(x) y ¬∃x Q(x) ↔ ∀x ¬Q(x)."]
 };
 const examplesPanel = $("#examples-panel");
 const grid = $("#examples-grid");
